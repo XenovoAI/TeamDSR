@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, Eye, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
+import { Link } from "wouter";
 
 const materials = [
   {
+    id: "1",
     subject: "Mathematics",
     title: "Linear Equations - Full Chapter Notes",
     type: "PDF",
@@ -13,6 +15,7 @@ const materials = [
     color: "bg-blue-50 text-blue-600"
   },
   {
+    id: "2",
     subject: "Science",
     title: "Carbon and its Compounds - Mind Map",
     type: "PDF",
@@ -20,6 +23,7 @@ const materials = [
     color: "bg-green-50 text-green-600"
   },
   {
+    id: "3",
     subject: "Science",
     title: "Periodic Classification - Important Q&A",
     type: "PDF",
@@ -27,6 +31,7 @@ const materials = [
     color: "bg-green-50 text-green-600"
   },
   {
+    id: "4",
     subject: "Social Studies",
     title: "Nationalism in India - Summary",
     type: "PDF",
@@ -34,6 +39,7 @@ const materials = [
     color: "bg-orange-50 text-orange-600"
   },
   {
+    id: "5",
     subject: "English",
     title: "Grammar Rules Cheat Sheet",
     type: "PDF",
@@ -60,32 +66,34 @@ export default function Materials() {
 
         <div className="grid gap-3 md:gap-4">
           {materials.map((item, index) => (
-            <Card key={index} className="border-none shadow-sm hover:shadow-md transition-all bg-white group">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${item.color}`}>
-                  <FileText size={24} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.color.replace('text', 'bg').replace('bg', 'bg-opacity-10')}`}>
-                      {item.subject}
-                    </span>
-                    <span className="text-xs text-muted-foreground uppercase">{item.type} • {item.size}</span>
+            <Link key={index} href={`/materials/${item.id}`}>
+              <Card className="border-none shadow-sm hover:shadow-md transition-all bg-white group cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${item.color} shrink-0`}>
+                    <FileText size={24} />
                   </div>
-                  <h3 className="font-bold text-base truncate pr-4">{item.title}</h3>
-                </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.color.replace('text', 'bg').replace('bg', 'bg-opacity-10')}`}>
+                        {item.subject}
+                      </span>
+                      <span className="text-xs text-muted-foreground uppercase">{item.type} • {item.size}</span>
+                    </div>
+                    <h3 className="font-bold text-base truncate pr-2 group-hover:text-primary transition-colors">{item.title}</h3>
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                    <Eye size={20} />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                    <Download size={20} />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex gap-2 shrink-0">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hidden sm:flex">
+                      <Eye size={20} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                      <Download size={20} />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

@@ -9,13 +9,18 @@ import Dashboard from "@/pages/Dashboard";
 import Materials from "@/pages/Materials";
 import Practice from "@/pages/Practice";
 
+import MaterialDetail from "@/pages/MaterialDetail";
+import PracticeDetail from "@/pages/PracticeDetail";
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/materials" component={Materials} />
+      <Route path="/materials/:id" component={MaterialDetail} />
       <Route path="/practice" component={Practice} />
+      <Route path="/practice/:id" component={PracticeDetail} />
       <Route component={NotFound} />
     </Switch>
   );
