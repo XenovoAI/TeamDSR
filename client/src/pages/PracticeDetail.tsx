@@ -116,9 +116,11 @@ export default function PracticeDetail() {
                   </Button>
                 </div>
               ) : (
-                <Button size="lg" className="w-full max-w-sm h-14 text-lg rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 shadow-xl shadow-indigo-200">
-                  Start Test Now <Play size={20} className="ml-2 fill-current" />
-                </Button>
+                <Link href={`/practice/${test.id}/play`}>
+                  <Button size="lg" className="w-full max-w-sm h-14 text-lg rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 shadow-xl shadow-indigo-200">
+                    Start Test Now <Play size={20} className="ml-2 fill-current" />
+                  </Button>
+                </Link>
               )}
             </div>
           </div>

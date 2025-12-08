@@ -11,6 +11,7 @@ import Practice from "@/pages/Practice";
 
 import MaterialDetail from "@/pages/MaterialDetail";
 import PracticeDetail from "@/pages/PracticeDetail";
+import QuizPlayer from "@/pages/QuizPlayer";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/materials/:id" component={MaterialDetail} />
       <Route path="/practice" component={Practice} />
       <Route path="/practice/:id" component={PracticeDetail} />
+      <Route path="/practice/:id/play" component={QuizPlayer} />
       <Route component={NotFound} />
     </Switch>
   );
