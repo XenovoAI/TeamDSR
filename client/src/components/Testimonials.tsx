@@ -24,10 +24,10 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="py-20 bg-indigo-50/50">
+    <section className="py-12 md:py-20 bg-indigo-50/50">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-16">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">Loved by Students & Parents</h2>
+        <div className="text-center mb-10 md:mb-16">
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Loved by Students & Parents</h2>
           <div className="flex justify-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <svg key={star} className="w-6 h-6 text-yellow-400 fill-current" viewBox="0 0 24 24">

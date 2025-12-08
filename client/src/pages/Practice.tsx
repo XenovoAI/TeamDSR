@@ -38,13 +38,13 @@ export default function Practice() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 md:px-6 pt-24 pb-12">
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold mb-2">Practice Arena</h1>
-          <p className="text-muted-foreground">Test your knowledge with chapter-wise quizzes and mock tests.</p>
+      <div className="container mx-auto px-4 md:px-6 pt-20 pb-8 md:pt-24 md:pb-12">
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">Practice Arena</h1>
+          <p className="text-muted-foreground text-sm md:text-base">Test your knowledge with chapter-wise quizzes and mock tests.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {tests.map((test, index) => (
             <Card key={index} className="border-none shadow-sm hover:shadow-md transition-all bg-white overflow-hidden group">
               <div className={`h-1.5 w-full ${test.color.split(' ')[0].replace('50', '500')}`} />

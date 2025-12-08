@@ -42,16 +42,16 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="py-20 bg-white/50">
+    <section className="py-12 md:py-20 bg-white/50">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">Everything You Need to Excel</h2>
-          <p className="text-muted-foreground text-lg">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Everything You Need to Excel</h2>
+          <p className="text-muted-foreground text-base md:text-lg">
             We've built the most comprehensive learning toolkit to help you understand better and score higher.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {features.map((feature, index) => (
             <Card key={index} className="border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white rounded-2xl overflow-hidden group">
               <CardContent className="p-6">

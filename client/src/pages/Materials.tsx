@@ -46,11 +46,11 @@ export default function Materials() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 md:px-6 pt-24 pb-12">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+      <div className="container mx-auto px-4 md:px-6 pt-20 pb-8 md:pt-24 md:pb-12">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="font-heading text-3xl font-bold mb-2">Study Materials</h1>
-            <p className="text-muted-foreground">Access high-quality notes, e-books, and summaries.</p>
+            <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">Study Materials</h1>
+            <p className="text-muted-foreground text-sm md:text-base">Access high-quality notes, e-books, and summaries.</p>
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -58,7 +58,7 @@ export default function Materials() {
           </div>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 md:gap-4">
           {materials.map((item, index) => (
             <Card key={index} className="border-none shadow-sm hover:shadow-md transition-all bg-white group">
               <CardContent className="p-4 flex items-center gap-4">
