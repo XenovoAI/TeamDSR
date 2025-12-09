@@ -1,10 +1,46 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, PenTool, LayoutDashboard } from "lucide-react";
+import { BookOpen, PenTool, LayoutDashboard, FileText, Download } from "lucide-react";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserStats, getUserDownloadedMaterials } from "@/lib/queries";
+import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
+  const { user, userProfile } = useAuth();
+  const firstName = user?.displayName?.split(' ')[0] || 'Student';
+  const [stats, setStats] = useState({
+    dayStreak: 0,
+    totalTests: 0,
+    avgScore: 0,
+    notesRead: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [downloadedMaterials, setDownloadedMaterials] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      try {
+        const [userStats, downloads] = await Promise.all([
+          getUserStats(user.uid),
+          getUserDownloadedMaterials(user.uid, 5)
+        ]);
+        console.log('📊 Dashboard data:', { userStats, downloads });
+        setStats(userStats);
+        setDownloadedMaterials(downloads);
+      } catch (error) {
+        console.error('❌ Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -12,8 +48,10 @@ export default function Dashboard() {
       <div className="container mx-auto px-4 md:px-6 pt-20 pb-8 md:pt-24 md:pb-12">
         {/* Simple Welcome Header */}
         <header className="mb-6 md:mb-10 text-center md:text-left">
-          <h1 className="font-heading text-2xl md:text-4xl font-bold mb-2">Welcome back, Harshit!</h1>
-          <p className="text-muted-foreground text-base md:text-lg">What would you like to do today?</p>
+          <h1 className="font-heading text-2xl md:text-4xl font-bold mb-2">Welcome back, {firstName}!</h1>
+          <p className="text-muted-foreground text-base md:text-lg">
+            {userProfile?.class ? `${userProfile.class} • ` : ''}What would you like to do today?
+          </p>
         </header>
 
         {/* Main Navigation Cards */}
@@ -61,23 +99,96 @@ export default function Dashboard() {
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-indigo-600">31</div>
+              <div className="text-xl md:text-2xl font-bold text-indigo-600">
+                {loading ? '...' : stats.dayStreak}
+              </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Day Streak</div>
             </div>
             <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-purple-600">12</div>
+              <div className="text-xl md:text-2xl font-bold text-purple-600">
+                {loading ? '...' : stats.totalTests}
+              </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Tests Taken</div>
             </div>
             <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-blue-600">85%</div>
+              <div className="text-xl md:text-2xl font-bold text-blue-600">
+                {loading ? '...' : `${stats.avgScore}%`}
+              </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Avg Score</div>
             </div>
             <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-orange-500">5</div>
+              <div className="text-xl md:text-2xl font-bold text-orange-500">
+                {loading ? '...' : stats.notesRead}
+              </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Notes Read</div>
             </div>
           </div>
         </div>
+
+        {/* Recently Downloaded Materials */}
+        {downloadedMaterials.length > 0 && (
+          <div className="mt-8 md:mt-12 max-w-4xl mx-auto md:mx-0">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading text-lg md:text-xl font-bold flex items-center gap-2">
+                <Download size={20} className="text-muted-foreground" /> 
+                Recently Downloaded
+              </h3>
+              <Link href="/materials">
+                <Button variant="ghost" size="sm" className="text-primary">
+                  View All
+                </Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {downloadedMaterials.map((download) => {
+                const material = download.material;
+                if (!material) return null;
+                
+                const subject = material.chapter?.subject?.name || 'General';
+                const getSubjectColor = (subj: string) => {
+                  const colors: any = {
+                    'Mathematics': 'bg-blue-50 text-blue-600',
+                    'Physics': 'bg-purple-50 text-purple-600',
+                    'Chemistry': 'bg-green-50 text-green-600',
+                    'Biology': 'bg-orange-50 text-orange-600',
+                    'English': 'bg-pink-50 text-pink-600'
+                  };
+                  return colors[subj] || 'bg-gray-50 text-gray-600';
+                };
+                const color = getSubjectColor(subject);
+
+                return (
+                  <Card key={download.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white">
+                    <CardContent className="p-3 md:p-4 flex items-center gap-3">
+                      <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center ${color} shrink-0`}>
+                        <FileText size={20} className="md:w-6 md:h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm md:text-base truncate">{material.title}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[10px] md:text-xs">
+                            {subject}
+                          </Badge>
+                          <span className="text-[10px] md:text-xs text-muted-foreground">
+                            {new Date(download.downloaded_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => window.open(material.file_url, '_blank')}
+                      >
+                        <FileText size={18} />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

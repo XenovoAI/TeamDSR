@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import heroImage from "@assets/generated_images/hero_illustration_of_students_learning.png";
 import { motion } from "framer-motion";
-import { ArrowRight, PlayCircle } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 
 export default function Hero() {
   return (
@@ -35,14 +35,16 @@ export default function Hero() {
             </p>
             
             <div className="flex flex-col w-full sm:w-auto sm:flex-row gap-3 md:gap-4">
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button size="lg" className="bg-gradient-primary text-base md:text-lg h-11 md:h-12 px-6 md:px-8 rounded-full shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 transition-all hover:-translate-y-1 w-full sm:w-auto">
-                  Start Learning Free <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+                  Get Started Free <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="text-base md:text-lg h-11 md:h-12 px-6 md:px-8 rounded-full border-2 border-indigo-100 hover:bg-indigo-50 hover:text-primary transition-colors w-full sm:w-auto">
-                <PlayCircle className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Watch Demo
-              </Button>
+              <Link href="/materials">
+                <Button variant="outline" size="lg" className="text-base md:text-lg h-11 md:h-12 px-6 md:px-8 rounded-full border-2 border-indigo-100 hover:bg-indigo-50 hover:text-primary transition-colors w-full sm:w-auto">
+                  <BookOpen className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Explore Materials
+                </Button>
+              </Link>
             </div>
             
             <div className="mt-8 md:mt-10 flex items-center gap-4 text-sm text-muted-foreground justify-center md:justify-start">

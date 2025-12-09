@@ -49,47 +49,47 @@ export default function Practice() {
           <p className="text-muted-foreground text-sm md:text-base">Test your knowledge with chapter-wise quizzes and mock tests.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {tests.map((test, index) => (
             <Link key={index} href={`/practice/${test.id}`}>
               <Card className="border-none shadow-sm hover:shadow-md transition-all bg-white overflow-hidden group cursor-pointer">
                 <div className={`h-1.5 w-full ${test.color.split(' ')[0].replace('50', '500')}`} />
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${test.color}`}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex justify-between items-start mb-3 md:mb-4">
+                    <span className={`text-[10px] md:text-xs font-bold px-2 py-1 rounded-full ${test.color}`}>
                       {test.subject}
                     </span>
                     {test.status === "Completed" ? (
-                      <span className="text-xs font-bold text-green-600 flex items-center gap-1">
-                        <CheckCircle size={14} /> Done
+                      <span className="text-[10px] md:text-xs font-bold text-green-600 flex items-center gap-1">
+                        <CheckCircle size={12} className="md:w-3.5 md:h-3.5" /> Done
                       </span>
                     ) : (
-                      <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
-                        <AlertCircle size={14} /> New
+                      <span className="text-[10px] md:text-xs font-bold text-indigo-600 flex items-center gap-1">
+                        <AlertCircle size={12} className="md:w-3.5 md:h-3.5" /> New
                       </span>
                     )}
                   </div>
                   
-                  <h3 className="font-heading text-xl font-bold mb-4 group-hover:text-primary transition-colors">
+                  <h3 className="font-heading text-base md:text-xl font-bold mb-3 md:mb-4 group-hover:text-primary transition-colors">
                     {test.title}
                   </h3>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                  <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground mb-4 md:mb-6">
                     <div className="flex items-center gap-1">
-                      <AlertCircle size={16} /> {test.questions} Qs
+                      <AlertCircle size={14} className="md:w-4 md:h-4" /> {test.questions} Qs
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock size={16} /> {test.time}
+                      <Clock size={14} className="md:w-4 md:h-4" /> {test.time}
                     </div>
                   </div>
 
                   {test.status === "Completed" ? (
-                    <Button variant="outline" className="w-full border-indigo-100 text-indigo-600 hover:bg-indigo-50">
+                    <Button variant="outline" className="w-full border-indigo-100 text-indigo-600 hover:bg-indigo-50 h-10 md:h-11 text-sm md:text-base tap-target">
                       View Result ({test.score})
                     </Button>
                   ) : (
-                    <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 transition-opacity">
-                      Start Test <Play size={16} className="ml-2 fill-current" />
+                    <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 transition-opacity h-10 md:h-11 text-sm md:text-base tap-target">
+                      Start Test <Play size={14} className="ml-2 fill-current md:w-4 md:h-4" />
                     </Button>
                   )}
                 </CardContent>

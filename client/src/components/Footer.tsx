@@ -23,20 +23,19 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4 text-foreground">Learn</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">All Courses</a></li>
-              <li><a href="#" className="hover:text-primary">Practice</a></li>
-              <li><a href="#" className="hover:text-primary">Study Notes</a></li>
-              <li><a href="#" className="hover:text-primary">Previous Papers</a></li>
+              <li><a href="/practice" className="hover:text-primary">Practice</a></li>
+              <li><a href="/study-notes" className="hover:text-primary">Study Notes</a></li>
+              <li><a href="/previous-papers" className="hover:text-primary">Previous Papers</a></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-bold mb-4 text-foreground">Company</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">About Us</a></li>
-              <li><a href="#" className="hover:text-primary">Careers</a></li>
-              <li><a href="#" className="hover:text-primary">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary">Terms of Service</a></li>
+              <li><a href="/about" className="hover:text-primary">About Us</a></li>
+              <li><a href="/careers" className="hover:text-primary">Careers</a></li>
+              <li><a href="/privacy" className="hover:text-primary">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-primary">Terms of Service</a></li>
             </ul>
           </div>
           

@@ -1,54 +1,71 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Eye, Search } from "lucide-react";
+import { FileText, Download, Eye, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
-import { Link } from "wouter";
-
-const materials = [
-  {
-    id: "1",
-    subject: "Mathematics",
-    title: "Linear Equations - Full Chapter Notes",
-    type: "PDF",
-    size: "2.4 MB",
-    color: "bg-blue-50 text-blue-600"
-  },
-  {
-    id: "2",
-    subject: "Science",
-    title: "Carbon and its Compounds - Mind Map",
-    type: "PDF",
-    size: "1.1 MB",
-    color: "bg-green-50 text-green-600"
-  },
-  {
-    id: "3",
-    subject: "Science",
-    title: "Periodic Classification - Important Q&A",
-    type: "PDF",
-    size: "1.8 MB",
-    color: "bg-green-50 text-green-600"
-  },
-  {
-    id: "4",
-    subject: "Social Studies",
-    title: "Nationalism in India - Summary",
-    type: "PDF",
-    size: "3.2 MB",
-    color: "bg-orange-50 text-orange-600"
-  },
-  {
-    id: "5",
-    subject: "English",
-    title: "Grammar Rules Cheat Sheet",
-    type: "PDF",
-    size: "0.8 MB",
-    color: "bg-purple-50 text-purple-600"
-  }
-];
+import { getAllStudyMaterials, trackMaterialDownload } from "@/lib/queries";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Materials() {
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [filteredMaterials, setFilteredMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  useEffect(() => {
+    filterMaterials();
+  }, [searchQuery, materials]);
+
+  const fetchMaterials = async () => {
+    try {
+      const data = await getAllStudyMaterials();
+      setMaterials(data);
+      setFilteredMaterials(data);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterMaterials = () => {
+    if (!searchQuery) {
+      setFilteredMaterials(materials);
+      return;
+    }
+
+    const filtered = materials.filter(m =>
+      m.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.chapter?.subject?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredMaterials(filtered);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return 'Unknown';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getSubjectColor = (subject: string) => {
+    const colors: any = {
+      'Mathematics': 'bg-blue-50 text-blue-600',
+      'Physics': 'bg-purple-50 text-purple-600',
+      'Chemistry': 'bg-green-50 text-green-600',
+      'Biology': 'bg-orange-50 text-orange-600',
+      'English': 'bg-pink-50 text-pink-600'
+    };
+    return colors[subject] || 'bg-gray-50 text-gray-600';
+  };
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -60,42 +77,106 @@ export default function Materials() {
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search notes..." className="pl-9 bg-white" />
+            <Input 
+              placeholder="Search notes..." 
+              className="pl-9 bg-white"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="grid gap-3 md:gap-4">
-          {materials.map((item, index) => (
-            <Link key={index} href={`/materials/${item.id}`}>
-              <Card className="border-none shadow-sm hover:shadow-md transition-all bg-white group cursor-pointer">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${item.color} shrink-0`}>
-                    <FileText size={24} />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.color.replace('text', 'bg').replace('bg', 'bg-opacity-10')}`}>
-                        {item.subject}
-                      </span>
-                      <span className="text-xs text-muted-foreground uppercase">{item.type} • {item.size}</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredMaterials.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {searchQuery ? 'No materials found matching your search' : 'No study materials available yet'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 md:gap-4">
+            {filteredMaterials.map((item) => {
+              const subject = item.chapter?.subject?.name || 'General';
+              const color = getSubjectColor(subject);
+              
+              return (
+                <Card key={item.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white group">
+                  <CardContent className="p-3 md:p-4 flex items-center gap-3 md:gap-4">
+                    <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center ${color} shrink-0`}>
+                      <FileText size={20} className="md:w-6 md:h-6" />
                     </div>
-                    <h3 className="font-bold text-base truncate pr-2 group-hover:text-primary transition-colors">{item.title}</h3>
-                  </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 md:gap-2 mb-1 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color.replace('text', 'bg').replace('bg', 'bg-opacity-10')}`}>
+                          {subject}
+                        </span>
+                        <span className="text-[10px] md:text-xs text-muted-foreground uppercase">
+                          {item.material_type} • {formatFileSize(item.file_size)}
+                        </span>
+                        {item.is_premium && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-600">
+                            PREMIUM
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-sm md:text-base truncate pr-2 group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground truncate hidden md:block">{item.description}</p>
+                      )}
+                    </div>
 
-                  <div className="flex gap-2 shrink-0">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hidden sm:flex">
-                      <Eye size={20} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                      <Download size={20} />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    <div className="flex gap-1 md:gap-2 shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-muted-foreground hover:text-primary hidden sm:flex tap-target"
+                        onClick={() => window.open(item.file_url, '_blank')}
+                      >
+                        <Eye size={18} className="md:w-5 md:h-5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-muted-foreground hover:text-primary tap-target"
+                        onClick={async () => {
+                          console.log('📥 Download clicked:', { userId: user?.uid, materialId: item.id });
+                          
+                          // Track download
+                          if (user) {
+                            const result = await trackMaterialDownload(user.uid, item.id);
+                            console.log('✅ Track result:', result);
+                          } else {
+                            console.log('⚠️ No user logged in');
+                          }
+                          
+                          // Download file
+                          const link = document.createElement('a');
+                          link.href = item.file_url;
+                          link.download = item.title;
+                          link.click();
+                          
+                          toast({
+                            title: "Download Started",
+                            description: "Material added to your dashboard"
+                          });
+                        }}
+                      >
+                        <Download size={18} className="md:w-5 md:h-5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

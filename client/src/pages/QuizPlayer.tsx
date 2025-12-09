@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Volume2, CheckCircle, XCircle, ArrowRight, RotateCcw, Play, Pause } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, ArrowRight, RotateCcw, Play, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import successImage from "@assets/generated_images/happy_celebration_sticker_for_correct_answer.png";
+import errorImage from "@assets/generated_images/cute_encouraging_character_for_wrong_answer.png";
 
 // Mock Data for the Quiz
 const quizData = {
@@ -61,9 +63,6 @@ export default function QuizPlayer() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [score, setScore] = useState(0);
   const [quizCompleted, setQuizCompleted] = useState(false);
-
-import successImage from "@assets/generated_images/happy_celebration_sticker_for_correct_answer.png";
-import errorImage from "@assets/generated_images/cute_encouraging_character_for_wrong_answer.png";
 
   const currentQuestion = quizData.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex) / quizData.questions.length) * 100;
@@ -145,21 +144,21 @@ import errorImage from "@assets/generated_images/cute_encouraging_character_for_
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-indigo-50 px-4 py-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-indigo-50 px-4 py-3 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <Link href="/practice/1"> {/* Hardcoded back link for demo */}
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-indigo-50 text-muted-foreground">
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-indigo-50 text-muted-foreground tap-target shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="font-heading font-bold text-lg md:text-xl hidden md:block">{quizData.title}</h1>
-            <p className="text-xs text-muted-foreground">Question {currentQuestionIndex + 1} of {quizData.questions.length}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading font-bold text-sm md:text-xl hidden md:block truncate">{quizData.title}</h1>
+            <p className="text-xs text-muted-foreground">Q {currentQuestionIndex + 1}/{quizData.questions.length}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-            Score: {score * 10} XP
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-xs md:text-sm font-bold text-indigo-600 bg-indigo-50 px-2 md:px-3 py-1 rounded-full whitespace-nowrap">
+            {score * 10} XP
           </div>
         </div>
       </div>
@@ -203,7 +202,7 @@ import errorImage from "@assets/generated_images/cute_encouraging_character_for_
                   <button
                     onClick={() => handleOptionSelect(index)}
                     disabled={isChecked}
-                    className={`w-full text-left p-4 md:p-5 rounded-2xl transition-all duration-200 font-medium text-base md:text-lg flex items-center justify-between group ${stateStyles}`}
+                    className={`w-full text-left p-4 md:p-5 rounded-2xl transition-all duration-200 font-medium text-sm md:text-lg flex items-center justify-between group tap-target ${stateStyles}`}
                   >
                     <span className="flex items-center gap-3">
                       <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${selectedOption === index || (isChecked && index === currentQuestion.correctAnswer) ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}>
@@ -302,30 +301,30 @@ import errorImage from "@assets/generated_images/cute_encouraging_character_for_
       </div>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-indigo-50 p-4 z-20">
-        <div className="container mx-auto max-w-3xl flex items-center justify-between">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-indigo-50 p-3 md:p-4 z-20 safe-area-bottom">
+        <div className="container mx-auto max-w-3xl flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-muted-foreground hidden md:inline-block">
             {isChecked ? (isCorrect ? "Great job!" : "Don't worry, learn from the explanation.") : "Select an option to check."}
           </span>
           
-          <div className="flex gap-3 w-full md:w-auto ml-auto">
+          <div className="flex gap-2 md:gap-3 w-full md:w-auto ml-auto">
             {!isChecked ? (
               <Button 
                 onClick={handleCheckAnswer} 
                 disabled={selectedOption === null}
-                className="w-full md:w-auto h-12 rounded-full px-8 bg-indigo-600 hover:bg-indigo-700 text-lg shadow-lg shadow-indigo-200 disabled:shadow-none transition-all"
+                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-indigo-600 hover:bg-indigo-700 text-base md:text-lg shadow-lg shadow-indigo-200 disabled:shadow-none transition-all tap-target"
               >
                 Check Answer
               </Button>
             ) : (
               <Button 
                 onClick={handleNextQuestion} 
-                className="w-full md:w-auto h-12 rounded-full px-8 bg-gradient-primary text-lg shadow-lg shadow-indigo-200 animate-in zoom-in duration-300"
+                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-gradient-primary text-base md:text-lg shadow-lg shadow-indigo-200 animate-in zoom-in duration-300 tap-target"
               >
                 {currentQuestionIndex < quizData.questions.length - 1 ? (
-                  <>Next Question <ArrowRight className="ml-2 h-5 w-5" /></>
+                  <>Next <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" /></>
                 ) : (
-                  <>Finish Quiz <Trophy className="ml-2 h-5 w-5" /></>
+                  <>Finish <Trophy className="ml-2 h-4 w-4 md:h-5 md:w-5" /></>
                 )}
               </Button>
             )}
