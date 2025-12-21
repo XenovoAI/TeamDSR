@@ -1,37 +1,36 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Calculator, Microscope, Languages, Globe, Laptop, Palette } from "lucide-react";
+import { Calculator, Atom, Beaker, Dna } from "lucide-react";
 
 const subjects = [
-  { icon: <Calculator />, name: "Mathematics", color: "text-blue-500", bg: "bg-blue-50" },
-  { icon: <Microscope />, name: "Science", color: "text-green-500", bg: "bg-green-50" },
-  { icon: <Languages />, name: "English", color: "text-purple-500", bg: "bg-purple-50" },
-  { icon: <Globe />, name: "Social Studies", color: "text-orange-500", bg: "bg-orange-50" },
-  { icon: <Laptop />, name: "Computer Science", color: "text-indigo-500", bg: "bg-indigo-50" },
-  { icon: <Palette />, name: "Arts & Humanities", color: "text-pink-500", bg: "bg-pink-50" },
+  { icon: <Calculator />, name: "Mathematics", color: "text-blue-500", bg: "bg-blue-50", description: "Calculus, Algebra, Trigonometry" },
+  { icon: <Atom />, name: "Physics", color: "text-purple-500", bg: "bg-purple-50", description: "Mechanics, Electromagnetism, Optics" },
+  { icon: <Beaker />, name: "Chemistry", color: "text-green-500", bg: "bg-green-50", description: "Organic, Inorganic, Physical" },
+  { icon: <Dna />, name: "Biology", color: "text-orange-500", bg: "bg-orange-50", description: "Botany, Zoology, Genetics" },
 ];
 
 export default function Subjects() {
   return (
-    <section className="py-12 md:py-20">
+    <section className="py-12 md:py-20 bg-gradient-to-b from-white to-indigo-50/30">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 md:mb-12 gap-4">
-          <div className="max-w-xl">
-            <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">Explore Subjects</h2>
-            <p className="text-muted-foreground text-base md:text-lg">
-              Comprehensive courses for every major subject, designed to make learning enjoyable.
-            </p>
-          </div>
-          <a href="#" className="text-primary font-semibold hover:underline text-sm md:text-base">View All Courses →</a>
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">Master JEE & NEET Subjects</h2>
+          <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
+            Comprehensive preparation for Physics, Chemistry, Mathematics, and Biology with expert guidance.
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
           {subjects.map((subject, index) => (
-            <Card key={index} className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group bg-white">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center gap-4 min-h-[160px]">
-                <div className={`w-12 h-12 rounded-full ${subject.bg} ${subject.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+            <Card key={index} className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group bg-white overflow-hidden">
+              <CardContent className="p-6 flex flex-col items-center justify-center text-center gap-4 min-h-[180px] relative">
+                <div className={`w-16 h-16 rounded-2xl ${subject.bg} ${subject.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
                   {subject.icon}
                 </div>
-                <h3 className="font-medium text-foreground">{subject.name}</h3>
+                <div>
+                  <h3 className="font-bold text-lg text-foreground mb-1">{subject.name}</h3>
+                  <p className="text-xs text-muted-foreground">{subject.description}</p>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardContent>
             </Card>
           ))}

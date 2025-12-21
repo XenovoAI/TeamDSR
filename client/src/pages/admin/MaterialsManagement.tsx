@@ -25,6 +25,7 @@ export default function MaterialsManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<File | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -87,20 +88,25 @@ export default function MaterialsManagement() {
     }
   };
 
-  const uploadFile = async (file: File): Promise<string> => {
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedThumbnail(e.target.files[0]);
+    }
+  };
+
+  const uploadFile = async (file: File, folder: string = 'materials'): Promise<string> => {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const fileName = `${folder}/${Math.random()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('study-materials')
-      .upload(filePath, file);
+      .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
       .from('study-materials')
-      .getPublicUrl(filePath);
+      .getPublicUrl(fileName);
 
     return data.publicUrl;
   };
@@ -122,16 +128,22 @@ export default function MaterialsManagement() {
 
       let fileUrl = editingMaterial?.file_url;
       let fileSize = editingMaterial?.file_size;
+      let thumbnailUrl = editingMaterial?.thumbnail_url;
 
       if (selectedFile) {
-        fileUrl = await uploadFile(selectedFile);
+        fileUrl = await uploadFile(selectedFile, 'materials');
         fileSize = selectedFile.size;
+      }
+
+      if (selectedThumbnail) {
+        thumbnailUrl = await uploadFile(selectedThumbnail, 'thumbnails');
       }
 
       const materialData = {
         ...formData,
         file_url: fileUrl,
         file_size: fileSize,
+        thumbnail_url: thumbnailUrl,
         created_by: user?.uid,
         is_active: true
       };
@@ -227,6 +239,7 @@ export default function MaterialsManagement() {
   const resetForm = () => {
     setEditingMaterial(null);
     setSelectedFile(null);
+    setSelectedThumbnail(null);
     setFormData({
       chapter_id: "",
       title: "",
@@ -361,6 +374,37 @@ export default function MaterialsManagement() {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Upload Thumbnail (Optional)</Label>
+                  <Input
+                    type="file"
+                    onChange={handleThumbnailChange}
+                    accept="image/*"
+                  />
+                  {selectedThumbnail && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Preview: {selectedThumbnail.name}
+                      </p>
+                      <img 
+                        src={URL.createObjectURL(selectedThumbnail)} 
+                        alt="Thumbnail preview" 
+                        className="w-full h-32 object-cover rounded-lg border"
+                      />
+                    </div>
+                  )}
+                  {editingMaterial?.thumbnail_url && !selectedThumbnail && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground mb-2">Current thumbnail:</p>
+                      <img 
+                        src={editingMaterial.thumbnail_url} 
+                        alt="Current thumbnail" 
+                        className="w-full h-32 object-cover rounded-lg border"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -475,6 +519,17 @@ export default function MaterialsManagement() {
                     className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                      {/* Thumbnail */}
+                      {material.thumbnail_url && (
+                        <div className="w-full md:w-32 h-24 rounded-lg overflow-hidden shrink-0">
+                          <img 
+                            src={material.thumbnail_url} 
+                            alt={material.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <h3 className="font-semibold">{material.title}</h3>

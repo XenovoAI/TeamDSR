@@ -5,12 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BookOpen, 
   FileText, 
-  Video, 
-  Upload, 
-  Brain,
-  Users,
-  BarChart3,
-  Settings
+  Users
 } from "lucide-react";
 import { getAdminStats, getRecentActivity } from "@/lib/queries";
 
@@ -50,15 +45,7 @@ export default function AdminDashboard() {
             time: recentActivity.recentMaterials[0]
               ? getTimeAgo(recentActivity.recentMaterials[0].created_at)
               : "No activity",
-            color: "text-green-600"
-          },
-          {
-            action: "Video published",
-            count: recentActivity.recentVideos.length,
-            time: recentActivity.recentVideos[0]
-              ? getTimeAgo(recentActivity.recentVideos[0].created_at)
-              : "No activity",
-            color: "text-purple-600"
+            color: "text-orange-600"
           },
           {
             action: "New students registered",
@@ -66,7 +53,7 @@ export default function AdminDashboard() {
             time: recentActivity.recentUsers[0]
               ? getTimeAgo(recentActivity.recentUsers[0].created_at)
               : "No activity",
-            color: "text-orange-600"
+            color: "text-purple-600"
           }
         ];
         
@@ -103,22 +90,6 @@ export default function AdminDashboard() {
       count: loading ? "..." : stats.totalQuestions.toLocaleString()
     },
     {
-      title: "AI Question Generator",
-      description: "Generate questions using AI",
-      icon: Brain,
-      href: "/admin/ai-questions",
-      color: "from-purple-500 to-pink-600",
-      count: "New"
-    },
-    {
-      title: "Bulk Upload",
-      description: "Upload questions in bulk",
-      icon: Upload,
-      href: "/admin/bulk-upload",
-      color: "from-green-500 to-emerald-600",
-      count: "CSV/Excel"
-    },
-    {
       title: "Study Materials",
       description: "Manage e-books and notes",
       icon: BookOpen,
@@ -127,36 +98,12 @@ export default function AdminDashboard() {
       count: loading ? "..." : stats.totalMaterials.toLocaleString()
     },
     {
-      title: "One Shot Videos",
-      description: "Manage chapter-wise videos",
-      icon: Video,
-      href: "/admin/videos",
-      color: "from-cyan-500 to-blue-600",
-      count: loading ? "..." : stats.totalVideos.toLocaleString()
-    },
-    {
       title: "Users",
       description: "Manage students and admins",
       icon: Users,
       href: "/admin/users",
       color: "from-violet-500 to-purple-600",
       count: loading ? "..." : stats.totalStudents.toLocaleString()
-    },
-    {
-      title: "Analytics",
-      description: "View platform statistics",
-      icon: BarChart3,
-      href: "/admin/analytics",
-      color: "from-pink-500 to-rose-600",
-      count: "Reports"
-    },
-    {
-      title: "Settings",
-      description: "Platform configuration",
-      icon: Settings,
-      href: "/admin/settings",
-      color: "from-gray-500 to-slate-600",
-      count: "Config"
     }
   ];
 
@@ -176,44 +123,35 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card className="border-none shadow-md">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {loading ? '...' : stats.totalStudents.toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground">Total Students</div>
-            </CardContent>
-          </Card>
-          <Card className="border-none shadow-md">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-blue-600">
                 {loading ? '...' : stats.totalQuestions.toLocaleString()}
               </div>
-              <div className="text-xs text-muted-foreground">Questions</div>
+              <div className="text-sm text-muted-foreground mt-1">Total Questions</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-purple-600">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-orange-600">
                 {loading ? '...' : stats.totalMaterials.toLocaleString()}
               </div>
-              <div className="text-xs text-muted-foreground">Study Materials</div>
+              <div className="text-sm text-muted-foreground mt-1">Study Materials</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-orange-600">
-                {loading ? '...' : stats.totalVideos.toLocaleString()}
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-purple-600">
+                {loading ? '...' : stats.totalStudents.toLocaleString()}
               </div>
-              <div className="text-xs text-muted-foreground">Videos</div>
+              <div className="text-sm text-muted-foreground mt-1">Total Students</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Admin Cards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {adminCards.map((card, index) => {
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">{adminCards.map((card, index) => {
             const Icon = card.icon;
             return (
               <Link key={index} href={card.href}>

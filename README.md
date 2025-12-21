@@ -1,8 +1,8 @@
-# 🎓 Team DSR - Learn Smart, Grow Fast
+# 🎓 Exam Fusion - Master Your Exams with Confidence
 
-A modern, comprehensive educational platform for CBSE Class 9 & 10 students with interactive learning materials, practice tests, and personalized progress tracking.
+A comprehensive JEE/NEET preparation platform for 11th, 12th, and dropper students with expert study materials, practice tests, and personalized progress tracking.
 
-![Team DSR](https://img.shields.io/badge/Team-DSR-blue?style=for-the-badge)
+![Exam Fusion](https://img.shields.io/badge/Exam-Fusion-blue?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth-FFCA28?style=for-the-badge&logo=firebase)
@@ -46,8 +46,8 @@ A modern, comprehensive educational platform for CBSE Class 9 & 10 students with
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/TeamDSR.git
-cd TeamDSR
+git clone https://github.com/your-username/ExamFusion.git
+cd ExamFusion
 ```
 
 2. **Install dependencies**
@@ -81,7 +81,7 @@ For detailed setup instructions, see:
 ## 📁 Project Structure
 
 ```
-TeamDSR/
+ExamFusion/
 ├── client/                    # Frontend application
 │   ├── src/
 │   │   ├── components/       # Reusable UI components
@@ -170,7 +170,7 @@ npm run check            # Run TypeScript type checking
 
 ### Public Pages (No login required)
 - `/` - Home page with hero and features
-- `/about` - About Team DSR
+- `/about` - About Exam Fusion
 - `/courses` - All available courses
 - `/study-notes` - Study materials library
 - `/previous-papers` - Past year papers
@@ -270,8 +270,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Digraj Singh Rajput**
-- Platform: Team DSR
-- Tagline: Learn Smart, Grow Fast
+- Platform: Exam Fusion
+- Tagline: Master Your Exams with Confidence
 
 ## 🙏 Acknowledgments
 
@@ -300,7 +300,7 @@ None at the moment! 🎉
 
 ## 📞 Support
 
-For support, email support@teamdsr.com or open an issue on GitHub.
+For support, email support@examfusion.com or open an issue on GitHub.
 
 ## 🌟 Show Your Support
 
@@ -308,6 +308,6 @@ Give a ⭐️ if this project helped you!
 
 ---
 
-**Made with ❤️ by Team DSR**
+**Made with ❤️ by Exam Fusion**
 
-*Empowering students to learn smarter and achieve their dreams.*
+*Empowering students to master their exams with confidence.*

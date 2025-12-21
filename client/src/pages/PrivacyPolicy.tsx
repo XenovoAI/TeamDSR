@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
       <div className="container mx-auto px-4 md:px-6 pt-20 pb-12 md:pt-24 md:pb-16 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="font-heading text-3xl md:text-4xl font-bold mb-3">Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: December 8, 2025</p>
+          <p className="text-muted-foreground">Last updated: December 21, 2025</p>
         </div>
 
         <Card className="border-none shadow-lg">
@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">1. Introduction</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Welcome to Team DSR. We respect your privacy and are committed to protecting your personal data. 
+                Welcome to Exam Fusion. We respect your privacy and are committed to protecting your personal data. 
                 This privacy policy explains how we collect, use, and safeguard your information when you use our 
                 educational platform.
               </p>
@@ -120,7 +120,7 @@ export default function PrivacyPolicy() {
                 If you have questions about this privacy policy or how we handle your data, please contact us at:
               </p>
               <div className="mt-3 p-4 bg-gray-50 rounded-lg">
-                <p className="font-semibold">Email: privacy@teamdsr.com</p>
+                <p className="font-semibold">Email: privacy@examfusion.com</p>
                 <p className="font-semibold">Phone: +91 XXXXX XXXXX</p>
               </div>
             </section>

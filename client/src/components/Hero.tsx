@@ -22,16 +22,16 @@ export default function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
-              Your Personal Learning Companion
+              Your JEE/NEET Preparation Partner
             </div>
             
             <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-4 md:mb-6 tracking-tight">
-              Master Any Subject <br/>
-              <span className="text-gradient">Anytime, Anywhere</span>
+              Master Your Exams <br/>
+              <span className="text-gradient">with Confidence</span>
             </h1>
             
             <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-lg leading-relaxed">
-              Join thousands of students learning smarter with Team DSR. Interactive lessons, AI practice, and expert guidance at your fingertips.
+              Ace JEE and NEET with personalized practice, expert guidance, and comprehensive study materials designed for 11th, 12th, and dropper students.
             </p>
             
             <div className="flex flex-col w-full sm:w-auto sm:flex-row gap-3 md:gap-4">

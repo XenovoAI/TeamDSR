@@ -4,9 +4,9 @@ export default function Footer() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
-            <h3 className="font-heading text-2xl font-bold text-primary mb-4">Team DSR</h3>
+            <h3 className="font-heading text-2xl font-bold text-primary mb-4">Exam Fusion</h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Learn Smart, Grow Fast. <br/>
+              Master Your Exams with Confidence. <br/>
               By Digraj Singh Rajput
             </p>
             <div className="flex gap-4">
@@ -42,14 +42,14 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4 text-foreground">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">support@teamdsr.com</a></li>
+              <li><a href="#" className="hover:text-primary">support@examfusion.com</a></li>
               <li><a href="#" className="hover:text-primary">+91 123 456 7890</a></li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-indigo-50 pt-8 text-center text-sm text-muted-foreground">
-          © 2024 Team DSR. All rights reserved.
+          © 2025 Exam Fusion. All rights reserved.
         </div>
       </div>
     </footer>

@@ -62,7 +62,9 @@ export default function Materials() {
       'Physics': 'bg-purple-50 text-purple-600',
       'Chemistry': 'bg-green-50 text-green-600',
       'Biology': 'bg-orange-50 text-orange-600',
-      'English': 'bg-pink-50 text-pink-600'
+      'Organic Chemistry': 'bg-emerald-50 text-emerald-600',
+      'Inorganic Chemistry': 'bg-teal-50 text-teal-600',
+      'Physical Chemistry': 'bg-cyan-50 text-cyan-600'
     };
     return colors[subject] || 'bg-gray-50 text-gray-600';
   };
@@ -73,7 +75,7 @@ export default function Materials() {
         <div className="flex flex-col md:flex-row justify-between items-end mb-6 md:mb-8 gap-4">
           <div>
             <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">Study Materials</h1>
-            <p className="text-muted-foreground text-sm md:text-base">Access high-quality notes, e-books, and summaries.</p>
+            <p className="text-muted-foreground text-sm md:text-base">Access JEE/NEET notes, topic-wise materials, and previous year papers.</p>
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -98,80 +100,128 @@ export default function Materials() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3 md:gap-4">
+          <div className="space-y-4">
             {filteredMaterials.map((item) => {
               const subject = item.chapter?.subject?.name || 'General';
               const color = getSubjectColor(subject);
               
               return (
-                <Card key={item.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white group">
-                  <CardContent className="p-3 md:p-4 flex items-center gap-3 md:gap-4">
-                    <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center ${color} shrink-0`}>
-                      <FileText size={20} className="md:w-6 md:h-6" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 md:gap-2 mb-1 flex-wrap">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color.replace('text', 'bg').replace('bg', 'bg-opacity-10')}`}>
+                <Card key={item.id} className="border-none shadow-lg hover:shadow-xl transition-all bg-white overflow-hidden">
+                  <div className="flex flex-col sm:flex-row">
+                    {/* Thumbnail - Left Side */}
+                    <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0">
+                      {item.thumbnail_url ? (
+                        <img 
+                          src={item.thumbnail_url} 
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center ${color.replace('text', 'bg').replace('600', '100')}`}>
+                          <FileText size={64} className={`${color} opacity-30`} />
+                        </div>
+                      )}
+                      
+                      {/* Badges on Thumbnail */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-purple-600 text-white shadow-lg">
+                          Class 12
+                        </span>
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${color} bg-white shadow-lg`}>
                           {subject}
                         </span>
-                        <span className="text-[10px] md:text-xs text-muted-foreground uppercase">
-                          {item.material_type} • {formatFileSize(item.file_size)}
-                        </span>
-                        {item.is_premium && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-600">
-                            PREMIUM
+                      </div>
+                      
+                      {/* Free/Premium Badge */}
+                      <div className="absolute bottom-3 left-3">
+                        {item.is_premium ? (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-yellow-400 text-yellow-900 shadow-lg flex items-center gap-1">
+                            <span>👑</span> PREMIUM
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-green-500 text-white shadow-lg flex items-center gap-1">
+                            <span>🔓</span> FREE
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-sm md:text-base truncate pr-2 group-hover:text-primary transition-colors">
-                        {item.title}
-                      </h3>
-                      {item.description && (
-                        <p className="text-xs text-muted-foreground truncate hidden md:block">{item.description}</p>
-                      )}
+                      
+                      {/* Download Count */}
+                      <div className="absolute bottom-3 right-3 text-xs font-semibold px-2 py-1 rounded bg-black/60 text-white backdrop-blur-sm">
+                        📊 {item.download_count || 0} downloads
+                      </div>
                     </div>
-
-                    <div className="flex gap-1 md:gap-2 shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-muted-foreground hover:text-primary hidden sm:flex tap-target"
-                        onClick={() => window.open(item.file_url, '_blank')}
-                      >
-                        <Eye size={18} className="md:w-5 md:h-5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-muted-foreground hover:text-primary tap-target"
-                        onClick={async () => {
-                          console.log('📥 Download clicked:', { userId: user?.uid, materialId: item.id });
-                          
-                          // Track download
-                          if (user) {
-                            const result = await trackMaterialDownload(user.uid, item.id);
-                            console.log('✅ Track result:', result);
-                          } else {
-                            console.log('⚠️ No user logged in');
-                          }
-                          
-                          // Download file
-                          const link = document.createElement('a');
-                          link.href = item.file_url;
-                          link.download = item.title;
-                          link.click();
-                          
-                          toast({
-                            title: "Download Started",
-                            description: "Material added to your dashboard"
-                          });
-                        }}
-                      >
-                        <Download size={18} className="md:w-5 md:h-5" />
-                      </Button>
-                    </div>
-                  </CardContent>
+                    
+                    {/* Content - Right Side */}
+                    <CardContent className="flex-1 p-4 sm:p-6 flex flex-col justify-between">
+                      {/* Title and Description */}
+                      <div className="mb-4">
+                        <h3 className="font-bold text-xl sm:text-2xl mb-2 line-clamp-2 text-gray-900">
+                          JEE 2026
+                        </h3>
+                        <h4 className="font-bold text-lg sm:text-xl mb-3 line-clamp-2">
+                          {item.title}
+                        </h4>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="lg"
+                            className="flex-1 h-12 text-base font-semibold rounded-xl border-2 border-cyan-200 text-cyan-600 hover:bg-cyan-50"
+                            onClick={() => window.open(item.file_url, '_blank')}
+                          >
+                            Preview
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="lg"
+                            className="flex-1 h-12 text-base font-semibold rounded-xl border-2 border-purple-200 text-purple-600 hover:bg-purple-50"
+                          >
+                            Discuss
+                          </Button>
+                        </div>
+                        <Button 
+                          size="lg"
+                          className="w-full h-14 text-lg font-bold rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg"
+                          onClick={async () => {
+                            console.log('📥 Download clicked:', { userId: user?.uid, materialId: item.id });
+                            
+                            if (user) {
+                              const result = await trackMaterialDownload(user.uid, item.id);
+                              console.log('✅ Track result:', result);
+                            }
+                            
+                            const link = document.createElement('a');
+                            link.href = item.file_url;
+                            link.download = item.title;
+                            link.click();
+                            
+                            toast({
+                              title: "Download Started",
+                              description: "Material added to your dashboard"
+                            });
+                          }}
+                        >
+                          <Download size={24} className="mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                      
+                      {/* File Info */}
+                      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                        <span className="font-semibold">{formatFileSize(item.file_size)}</span>
+                        {item.page_count && <span>• {item.page_count} pages</span>}
+                        <span>• {item.material_type.toUpperCase()}</span>
+                      </div>
+                    </CardContent>
+                  </div>
                 </Card>
               );
             })}

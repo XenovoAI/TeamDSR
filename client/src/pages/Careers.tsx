@@ -6,16 +6,16 @@ import { Briefcase, Users, Zap, Heart, MapPin, Clock } from "lucide-react";
 
 const openings = [
   {
-    title: "Content Writer - Mathematics",
+    title: "Content Writer - Physics/Chemistry/Maths",
     type: "Full-time",
     location: "Remote",
-    description: "Create engaging study materials and practice questions for Class 9-10 Mathematics."
+    description: "Create engaging study materials and practice questions for JEE/NEET preparation."
   },
   {
-    title: "Subject Matter Expert - Science",
+    title: "Subject Matter Expert - Biology",
     type: "Part-time",
     location: "Remote",
-    description: "Review and validate science content, create chapter summaries and important questions."
+    description: "Review and validate NEET Biology content, create topic-wise questions and solutions."
   },
   {
     title: "UI/UX Designer",
@@ -40,10 +40,10 @@ export default function Careers() {
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Join Team DSR
+            Join Exam Fusion
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Help us transform education for millions of students across India. Build your career while making a real impact.
+            Help us empower students to master their exams with confidence. Build your career while making a real impact.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function Careers() {
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 md:p-12 text-white text-center">
           <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">Don't See Your Role?</h2>
           <p className="text-lg mb-6 opacity-90 max-w-2xl mx-auto">
-            We're always looking for talented individuals who are passionate about education. 
+            We're always looking for talented individuals who are passionate about helping students succeed. 
             Send us your resume and let's talk!
           </p>
           <Button size="lg" variant="secondary" className="bg-white text-indigo-600 hover:bg-gray-100">

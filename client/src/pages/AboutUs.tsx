@@ -12,10 +12,10 @@ export default function AboutUs() {
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            About Team DSR
+            About Exam Fusion
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Empowering students to learn smarter, grow faster, and achieve their dreams through quality education.
+            Empowering JEE and NEET aspirants to master their exams with confidence through personalized practice and expert guidance.
           </p>
         </div>
 
@@ -28,8 +28,8 @@ export default function AboutUs() {
               </div>
               <h2 className="font-heading text-2xl font-bold mb-3">Our Mission</h2>
               <p className="text-muted-foreground leading-relaxed">
-                To make quality education accessible to every student by providing comprehensive study materials, 
-                interactive practice tests, and personalized learning experiences that help them excel in their academics.
+                To make quality JEE/NEET preparation accessible to every aspirant by providing comprehensive study materials, 
+                interactive practice tests, and personalized learning experiences that help them excel in competitive exams.
               </p>
             </CardContent>
           </Card>
@@ -41,8 +41,8 @@ export default function AboutUs() {
               </div>
               <h2 className="font-heading text-2xl font-bold mb-3">Our Vision</h2>
               <p className="text-muted-foreground leading-relaxed">
-                To become India's most trusted learning platform where students not only prepare for exams 
-                but develop a genuine love for learning and build skills that last a lifetime.
+                To become India's most trusted JEE/NEET preparation platform where students not only prepare for exams 
+                but develop problem-solving skills and build the confidence needed to crack competitive exams.
               </p>
             </CardContent>
           </Card>
@@ -55,19 +55,18 @@ export default function AboutUs() {
               <h2 className="font-heading text-2xl md:text-3xl font-bold mb-6 text-center">Our Story</h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  Team DSR was founded by <span className="font-semibold text-foreground">Digraj Singh Rajput</span>, 
-                  an educator passionate about transforming how students learn and prepare for their board exams.
+                  Exam Fusion was founded by <span className="font-semibold text-foreground">Digraj Singh Rajput</span>, 
+                  an educator passionate about transforming how students prepare for JEE and NEET competitive exams.
                 </p>
                 <p>
-                  Having witnessed countless students struggle with scattered resources and ineffective study methods, 
-                  Digraj envisioned a platform that would bring everything a student needs under one roof - from 
-                  comprehensive notes to interactive quizzes, all designed with the CBSE curriculum in mind.
+                  Having witnessed countless aspirants struggle with scattered resources and ineffective study methods, 
+                  Digraj envisioned a platform that would bring everything a JEE/NEET student needs under one roof - from 
+                  comprehensive notes to topic-wise practice, all designed specifically for competitive exam success.
                 </p>
                 <p>
-                  Today, Team DSR serves thousands of students across India, helping them achieve better grades, 
-                  build confidence, and develop a deeper understanding of their subjects. Our content is created 
-                  by experienced educators who understand the challenges students face and know how to make 
-                  learning engaging and effective.
+                  Today, Exam Fusion serves thousands of 11th, 12th, and dropper students across India, helping them achieve their 
+                  dream ranks, build confidence, and develop a deeper understanding of Physics, Chemistry, Mathematics, and Biology. 
+                  Our content is created by IIT/AIIMS alumni and experienced educators who understand the challenges aspirants face.
                 </p>
               </div>
             </CardContent>
