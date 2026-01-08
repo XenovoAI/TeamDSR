@@ -3,40 +3,40 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
   {
-    icon: <BookOpen className="h-6 w-6 text-indigo-500" />,
+    icon: <BookOpen className="h-6 w-6 text-[#0B9B9B]" />,
     title: "Chapter-wise Practice",
     description: "Interactive exercises with GIFs and real-world examples to master every concept.",
-    color: "bg-indigo-50"
+    color: "bg-[#AFFFFF]/30"
   },
   {
-    icon: <Mic className="h-6 w-6 text-purple-500" />,
+    icon: <Mic className="h-6 w-6 text-[#1B5E5E]" />,
     title: "Voice Explanations",
-    description: "Listen to expert explanations by Digraj Sir anytime you're stuck on a topic.",
-    color: "bg-purple-50"
+    description: "Listen to expert explanations anytime you're stuck on a NEET topic.",
+    color: "bg-[#0DCDCD]/20"
   },
   {
-    icon: <FileText className="h-6 w-6 text-blue-500" />,
+    icon: <FileText className="h-6 w-6 text-[#0B9B9B]" />,
     title: "Short Notes & E-books",
     description: "Concise, beautiful notes to help you revise entire chapters in minutes.",
-    color: "bg-blue-50"
+    color: "bg-[#5DDDDD]/20"
   },
   {
-    icon: <Sparkles className="h-6 w-6 text-orange-500" />,
+    icon: <Sparkles className="h-6 w-6 text-[#FDB022]" />,
     title: "AI Generated Questions",
     description: "Never run out of practice. Get unlimited personalized questions instantly.",
-    color: "bg-orange-50"
+    color: "bg-[#FDB022]/10"
   },
   {
-    icon: <TrendingUp className="h-6 w-6 text-green-500" />,
+    icon: <TrendingUp className="h-6 w-6 text-[#10B981]" />,
     title: "Progress Tracking",
     description: "Visualize your growth with beautiful charts and streak rewards.",
-    color: "bg-green-50"
+    color: "bg-[#10B981]/10"
   },
   {
-    icon: <Smartphone className="h-6 w-6 text-pink-500" />,
+    icon: <Smartphone className="h-6 w-6 text-[#7C3AED]" />,
     title: "Mobile-First Design",
     description: "Learn on the go with an interface designed perfectly for your phone.",
-    color: "bg-pink-50"
+    color: "bg-[#7C3AED]/10"
   }
 ];
 

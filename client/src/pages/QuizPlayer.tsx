@@ -85,7 +85,7 @@ export default function QuizPlayer() {
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#4361EE', '#7C3AED', '#4CC9F0']
+        colors: ['#1B5E5E', '#0B9B9B', '#5DDDDD']
       });
     }
   };
@@ -112,7 +112,7 @@ export default function QuizPlayer() {
         <Card className="w-full max-w-md border-none shadow-xl bg-white text-center p-6 rounded-3xl">
           <CardContent className="pt-6">
             <div className="mb-6 flex justify-center">
-              <div className="w-32 h-32 rounded-full bg-indigo-50 flex items-center justify-center text-6xl">
+              <div className="w-32 h-32 rounded-full bg-[#AFFFFF]/30 flex items-center justify-center text-6xl">
                 🏆
               </div>
             </div>
@@ -144,10 +144,10 @@ export default function QuizPlayer() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-indigo-50 px-4 py-3 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-white border-b border-[#0DCDCD]/20 px-4 py-3 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <Link href="/practice/1"> {/* Hardcoded back link for demo */}
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-indigo-50 text-muted-foreground tap-target shrink-0">
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-[#AFFFFF]/30 text-muted-foreground tap-target shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
@@ -157,14 +157,14 @@ export default function QuizPlayer() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <div className="text-xs md:text-sm font-bold text-indigo-600 bg-indigo-50 px-2 md:px-3 py-1 rounded-full whitespace-nowrap">
+          <div className="text-xs md:text-sm font-bold text-[#1B5E5E] bg-[#AFFFFF]/30 px-2 md:px-3 py-1 rounded-full whitespace-nowrap">
             {score * 10} XP
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <Progress value={progress} className="h-1 rounded-none bg-indigo-50" indicatorClassName="bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500" />
+      <Progress value={progress} className="h-1 rounded-none bg-[#AFFFFF]/30" indicatorClassName="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] transition-all duration-500" />
 
       {/* Main Content */}
       <div className="flex-1 container mx-auto px-4 py-6 md:py-10 max-w-3xl flex flex-col">
@@ -177,10 +177,10 @@ export default function QuizPlayer() {
 
           <div className="space-y-3">
             {currentQuestion.options.map((option, index) => {
-              let stateStyles = "border-2 border-transparent bg-white hover:border-indigo-100 hover:bg-indigo-50/50";
+              let stateStyles = "border-2 border-transparent bg-white hover:border-[#0DCDCD]/30 hover:bg-[#AFFFFF]/20";
               
               if (selectedOption === index) {
-                stateStyles = "border-2 border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md ring-2 ring-indigo-200 ring-offset-2";
+                stateStyles = "border-2 border-[#0B9B9B] bg-[#AFFFFF]/30 text-[#1B5E5E] shadow-md ring-2 ring-[#0DCDCD]/30 ring-offset-2";
               }
 
               if (isChecked) {
@@ -269,19 +269,19 @@ export default function QuizPlayer() {
                   </p>
 
                   {/* Voice Explanation Player */}
-                  <div className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-indigo-50/50 w-full md:w-fit">
+                  <div className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-[#0DCDCD]/20 w-full md:w-fit">
                     <Button 
                       size="icon" 
-                      className={`rounded-full shrink-0 ${isPlayingAudio ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                      className={`rounded-full shrink-0 ${isPlayingAudio ? 'bg-[#AFFFFF]/40 text-[#1B5E5E] hover:bg-[#AFFFFF]/60' : 'bg-[#0B9B9B] text-white hover:bg-[#1B5E5E]'}`}
                       onClick={toggleAudio}
                     >
                       {isPlayingAudio ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 pl-0.5" />}
                     </Button>
                     <div className="flex-1 min-w-[120px]">
-                      <div className="text-xs font-bold text-indigo-900 mb-1">Explanation by Digraj Sir</div>
-                      <div className="h-1 bg-indigo-50 rounded-full overflow-hidden w-full">
+                      <div className="text-xs font-bold text-[#1B5E5E] mb-1">Expert Explanation</div>
+                      <div className="h-1 bg-[#AFFFFF]/30 rounded-full overflow-hidden w-full">
                         <motion.div 
-                          className="h-full bg-indigo-500"
+                          className="h-full bg-[#0B9B9B]"
                           initial={{ width: "0%" }}
                           animate={{ width: isPlayingAudio ? "100%" : "0%" }}
                           transition={{ duration: 10, ease: "linear" }} // Mock duration
@@ -301,7 +301,7 @@ export default function QuizPlayer() {
       </div>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-indigo-50 p-3 md:p-4 z-20 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#0DCDCD]/20 p-3 md:p-4 z-20 safe-area-bottom">
         <div className="container mx-auto max-w-3xl flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-muted-foreground hidden md:inline-block">
             {isChecked ? (isCorrect ? "Great job!" : "Don't worry, learn from the explanation.") : "Select an option to check."}
@@ -312,14 +312,14 @@ export default function QuizPlayer() {
               <Button 
                 onClick={handleCheckAnswer} 
                 disabled={selectedOption === null}
-                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-indigo-600 hover:bg-indigo-700 text-base md:text-lg shadow-lg shadow-indigo-200 disabled:shadow-none transition-all tap-target"
+                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-[#0B9B9B] hover:bg-[#1B5E5E] text-base md:text-lg shadow-lg shadow-[#0DCDCD]/30 disabled:shadow-none transition-all tap-target"
               >
                 Check Answer
               </Button>
             ) : (
               <Button 
                 onClick={handleNextQuestion} 
-                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-gradient-primary text-base md:text-lg shadow-lg shadow-indigo-200 animate-in zoom-in duration-300 tap-target"
+                className="w-full md:w-auto h-12 md:h-12 rounded-full px-6 md:px-8 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] text-base md:text-lg shadow-lg shadow-[#0DCDCD]/30 animate-in zoom-in duration-300 tap-target"
               >
                 {currentQuestionIndex < quizData.questions.length - 1 ? (
                   <>Next <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" /></>

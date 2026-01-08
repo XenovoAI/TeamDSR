@@ -14,7 +14,7 @@ const tests = [
     time: "30 mins",
     difficulty: "Medium",
     status: "New",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "2",
@@ -64,7 +64,7 @@ export default function Practice() {
                         <CheckCircle size={12} className="md:w-3.5 md:h-3.5" /> Done
                       </span>
                     ) : (
-                      <span className="text-[10px] md:text-xs font-bold text-indigo-600 flex items-center gap-1">
+                      <span className="text-[10px] md:text-xs font-bold text-[#0B9B9B] flex items-center gap-1">
                         <AlertCircle size={12} className="md:w-3.5 md:h-3.5" /> New
                       </span>
                     )}
@@ -84,11 +84,11 @@ export default function Practice() {
                   </div>
 
                   {test.status === "Completed" ? (
-                    <Button variant="outline" className="w-full border-indigo-100 text-indigo-600 hover:bg-indigo-50 h-10 md:h-11 text-sm md:text-base tap-target">
+                    <Button variant="outline" className="w-full border-[#0DCDCD]/30 text-[#0B9B9B] hover:bg-[#AFFFFF]/20 h-10 md:h-11 text-sm md:text-base tap-target">
                       View Result ({test.score})
                     </Button>
                   ) : (
-                    <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 transition-opacity h-10 md:h-11 text-sm md:text-base tap-target">
+                    <Button className="w-full bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90 transition-opacity h-10 md:h-11 text-sm md:text-base tap-target">
                       Start Test <Play size={14} className="ml-2 fill-current md:w-4 md:h-4" />
                     </Button>
                   )}

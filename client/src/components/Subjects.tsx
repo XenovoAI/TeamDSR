@@ -2,20 +2,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calculator, Atom, Beaker, Dna } from "lucide-react";
 
 const subjects = [
-  { icon: <Calculator />, name: "Mathematics", color: "text-blue-500", bg: "bg-blue-50", description: "Calculus, Algebra, Trigonometry" },
-  { icon: <Atom />, name: "Physics", color: "text-purple-500", bg: "bg-purple-50", description: "Mechanics, Electromagnetism, Optics" },
-  { icon: <Beaker />, name: "Chemistry", color: "text-green-500", bg: "bg-green-50", description: "Organic, Inorganic, Physical" },
-  { icon: <Dna />, name: "Biology", color: "text-orange-500", bg: "bg-orange-50", description: "Botany, Zoology, Genetics" },
+  { icon: <Calculator />, name: "Mathematics", color: "text-[#0B9B9B]", bg: "bg-[#AFFFFF]/30", description: "Calculus, Algebra, Trigonometry" },
+  { icon: <Atom />, name: "Physics", color: "text-[#1B5E5E]", bg: "bg-[#0DCDCD]/20", description: "Mechanics, Electromagnetism, Optics" },
+  { icon: <Beaker />, name: "Chemistry", color: "text-[#0B9B9B]", bg: "bg-[#5DDDDD]/20", description: "Organic, Inorganic, Physical" },
+  { icon: <Dna />, name: "Biology", color: "text-[#1B5E5E]", bg: "bg-[#AFFFFF]/40", description: "Botany, Zoology, Genetics" },
 ];
 
 export default function Subjects() {
   return (
-    <section className="py-12 md:py-20 bg-gradient-to-b from-white to-indigo-50/30">
+    <section className="py-12 md:py-20 bg-gradient-to-b from-white to-[#AFFFFF]/10">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">Master JEE & NEET Subjects</h2>
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">Master NEET Subjects</h2>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-            Comprehensive preparation for Physics, Chemistry, Mathematics, and Biology with expert guidance.
+            Comprehensive NEET preparation for Physics, Chemistry, and Biology with expert guidance.
           </p>
         </div>
 
@@ -30,7 +30,7 @@ export default function Subjects() {
                   <h3 className="font-bold text-lg text-foreground mb-1">{subject.name}</h3>
                   <p className="text-xs text-muted-foreground">{subject.description}</p>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B9B9B]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardContent>
             </Card>
           ))}

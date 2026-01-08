@@ -18,7 +18,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">1. Acceptance of Terms</h2>
               <p className="text-muted-foreground leading-relaxed">
-                By accessing and using Exam Fusion's platform, you accept and agree to be bound by these Terms of Service. 
+                By accessing and using NEETPeak's platform, you accept and agree to be bound by these Terms of Service. 
                 If you do not agree to these terms, please do not use our services. These terms apply to all users, 
                 including students, parents, and educators.
               </p>
@@ -59,8 +59,8 @@ export default function TermsOfService() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">4. Intellectual Property</h2>
               <p className="text-muted-foreground leading-relaxed mb-3">
-                All content on Exam Fusion, including study materials, videos, quizzes, and software, is owned by 
-                Exam Fusion or its licensors and is protected by copyright and intellectual property laws.
+                All content on NEETPeak, including study materials, videos, quizzes, and software, is owned by 
+                NEETPeak or its licensors and is protected by copyright and intellectual property laws.
               </p>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>You may access content for personal, non-commercial educational use only</li>
@@ -91,7 +91,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">7. User-Generated Content</h2>
               <p className="text-muted-foreground leading-relaxed">
-                If you submit questions, comments, or feedback, you grant Exam Fusion a non-exclusive, royalty-free 
+                If you submit questions, comments, or feedback, you grant NEETPeak a non-exclusive, royalty-free 
                 license to use, modify, and display such content. You represent that you own or have rights to any 
                 content you submit and that it does not violate any laws or third-party rights.
               </p>
@@ -100,7 +100,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">8. Limitation of Liability</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Exam Fusion is provided "as is" without warranties of any kind. We are not liable for any indirect, 
+                NEETPeak is provided "as is" without warranties of any kind. We are not liable for any indirect, 
                 incidental, or consequential damages arising from your use of the platform. Our total liability 
                 shall not exceed the amount you paid for the service in the past 12 months.
               </p>

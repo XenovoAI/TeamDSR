@@ -9,7 +9,7 @@ const openings = [
     title: "Content Writer - Physics/Chemistry/Maths",
     type: "Full-time",
     location: "Remote",
-    description: "Create engaging study materials and practice questions for JEE/NEET preparation."
+    description: "Create engaging study materials and practice questions for NEET preparation."
   },
   {
     title: "Subject Matter Expert - Biology",
@@ -39,8 +39,8 @@ export default function Careers() {
       <div className="container mx-auto px-4 md:px-6 pt-20 pb-12 md:pt-24 md:pb-16">
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-16">
-          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Join Exam Fusion
+          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] bg-clip-text text-transparent">
+            Join NEETPeak
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
             Help us empower students to master their exams with confidence. Build your career while making a real impact.
@@ -53,7 +53,7 @@ export default function Careers() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6 text-center">
-                <div className="h-14 w-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#AFFFFF]/30 text-[#0B9B9B] flex items-center justify-center mx-auto mb-4">
                   <Heart size={28} />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Meaningful Work</h3>
@@ -65,7 +65,7 @@ export default function Careers() {
 
             <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6 text-center">
-                <div className="h-14 w-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mx-auto mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#0DCDCD]/20 text-[#1B5E5E] flex items-center justify-center mx-auto mb-4">
                   <Zap size={28} />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Fast Growth</h3>
@@ -77,7 +77,7 @@ export default function Careers() {
 
             <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6 text-center">
-                <div className="h-14 w-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#5DDDDD]/20 text-[#0B9B9B] flex items-center justify-center mx-auto mb-4">
                   <Users size={28} />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Great Team</h3>
@@ -89,7 +89,7 @@ export default function Careers() {
 
             <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6 text-center">
-                <div className="h-14 w-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#AFFFFF]/40 text-[#1B5E5E] flex items-center justify-center mx-auto mb-4">
                   <MapPin size={28} />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Remote First</h3>
@@ -121,7 +121,7 @@ export default function Careers() {
                         </span>
                       </div>
                     </div>
-                    <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 shrink-0">
+                    <Button className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90 shrink-0">
                       Apply Now
                     </Button>
                   </div>
@@ -132,13 +132,13 @@ export default function Careers() {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 md:p-12 text-white text-center">
+        <div className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] rounded-3xl p-8 md:p-12 text-white text-center">
           <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">Don't See Your Role?</h2>
           <p className="text-lg mb-6 opacity-90 max-w-2xl mx-auto">
             We're always looking for talented individuals who are passionate about helping students succeed. 
             Send us your resume and let's talk!
           </p>
-          <Button size="lg" variant="secondary" className="bg-white text-indigo-600 hover:bg-gray-100">
+          <Button size="lg" variant="secondary" className="bg-white text-[#1B5E5E] hover:bg-gray-100">
             Send Your Resume
           </Button>
         </div>

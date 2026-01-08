@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="font-heading text-2xl font-bold mb-4">1. Introduction</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Welcome to Exam Fusion. We respect your privacy and are committed to protecting your personal data. 
+                Welcome to NEETPeak. We respect your privacy and are committed to protecting your personal data. 
                 This privacy policy explains how we collect, use, and safeguard your information when you use our 
                 educational platform.
               </p>

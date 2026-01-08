@@ -16,7 +16,7 @@ const studyNotes = [
     type: "PDF",
     pages: 24,
     downloads: "12.5k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "2",
@@ -27,7 +27,7 @@ const studyNotes = [
     type: "PDF",
     pages: 18,
     downloads: "10.2k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "3",
@@ -67,7 +67,7 @@ const studyNotes = [
     subject: "Social Science",
     class: "Class 10",
     title: "Resources and Development - Map Work",
-    description: "Types of resources, conservation methods, and important maps for board exam preparation.",
+    description: "Types of resources, conservation methods, and important maps for NEET preparation.",
     type: "PDF",
     pages: 16,
     downloads: "8.4k",
@@ -82,7 +82,7 @@ const studyNotes = [
     type: "PDF",
     pages: 32,
     downloads: "11.9k",
-    color: "bg-purple-50 text-purple-600"
+    color: "bg-[#0DCDCD]/20 text-[#1B5E5E]"
   },
   {
     id: "8",
@@ -93,7 +93,7 @@ const studyNotes = [
     type: "PDF",
     pages: 22,
     downloads: "13.6k",
-    color: "bg-purple-50 text-purple-600"
+    color: "bg-[#0DCDCD]/20 text-[#1B5E5E]"
   },
   {
     id: "9",
@@ -104,7 +104,7 @@ const studyNotes = [
     type: "PDF",
     pages: 20,
     downloads: "7.8k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "10",
@@ -130,7 +130,7 @@ export default function StudyNotes() {
       <div className="container mx-auto px-4 md:px-6 pt-20 pb-12 md:pt-24 md:pb-16">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] bg-clip-text text-transparent">
             Study Notes
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -203,7 +203,7 @@ export default function StudyNotes() {
                         <Eye size={16} /> View
                       </Button>
                     </Link>
-                    <Button size="sm" className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90">
+                    <Button size="sm" className="gap-2 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90">
                       <Download size={16} /> Download
                     </Button>
                   </div>
@@ -222,15 +222,15 @@ export default function StudyNotes() {
 
         {/* Info Section */}
         <div className="mt-16 max-w-4xl mx-auto">
-          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+          <Card className="border-none shadow-lg bg-gradient-to-br from-[#AFFFFF]/20 to-[#0DCDCD]/20">
             <CardContent className="p-8 text-center">
-              <BookOpen className="h-12 w-12 text-indigo-600 mx-auto mb-4" />
+              <BookOpen className="h-12 w-12 text-[#0B9B9B] mx-auto mb-4" />
               <h3 className="font-heading text-2xl font-bold mb-3">Premium Notes Available</h3>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
                 Get access to 500+ premium study notes, mind maps, formula sheets, and revision guides 
                 with our premium subscription. Perfect for last-minute revision!
               </p>
-              <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90">
+              <Button size="lg" className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90">
                 Upgrade to Premium
               </Button>
             </CardContent>

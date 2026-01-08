@@ -20,7 +20,7 @@ export default function Navbar() {
 
   const isActive = (path: string) => location === path;
   const linkClass = (path: string) => 
-    `text-sm font-medium transition-colors ${isActive(path) ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`;
+    `text-base font-medium transition-colors ${isActive(path) ? 'text-primary font-semibold border-b-2 border-primary pb-1' : 'text-gray-700 hover:text-primary'}`;
 
   const onSignOut = async () => {
     try {
@@ -32,31 +32,42 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-indigo-50">
-      <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-heading font-bold text-2xl text-primary tracking-tight">Exam Fusion</span>
+    <nav className="fixed top-4 left-0 right-0 z-50 px-4 md:px-8">
+      <div className="container mx-auto bg-white rounded-full shadow-lg border border-gray-200 px-6 md:px-8 h-16 flex items-center justify-between">
+        {/* Logo - Simple text style like Exam Fusion */}
+        <Link href="/" className="flex items-center">
+          <span className="font-heading font-extrabold text-2xl md:text-3xl text-[#0B9B9B]">
+            NEETPeak
+          </span>
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="/dashboard" className={linkClass('/dashboard')}>Dashboard</Link>
+        <div className="hidden lg:flex items-center gap-8">
+          <Link href="/" className={linkClass('/')}>Home</Link>
           <Link href="/materials" className={linkClass('/materials')}>Materials</Link>
-          <Link href="/practice" className={linkClass('/practice')}>Practice</Link>
-          <Link href="/about" className={linkClass('/about')}>About</Link>
+          <Link href="/mentorship" className={linkClass('/mentorship')}>Mentorship</Link>
+          <Link href="/about" className={linkClass('/about')}>About Us</Link>
         </div>
 
         {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3">
+          <a 
+            href="https://play.google.com/store/apps/details?id=com.neetpeak" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <Button className="bg-[#0B9B9B] hover:bg-[#0DCDCD] text-white rounded-full px-6 h-11 text-sm font-semibold shadow-md transition-all hover:shadow-lg">
+              Download App
+            </Button>
+          </a>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-                    <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
-                      {user.displayName?.charAt(0) || 'U'}
+                  <Avatar className="h-10 w-10 border-2 border-[#0DCDCD]">
+                    <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.name || 'User'} />
+                    <AvatarFallback className="bg-gradient-to-br from-[#0B9B9B] to-[#0DCDCD] text-white font-semibold">
+                      {userProfile?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -64,7 +75,7 @@ export default function Navbar() {
               <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.displayName || 'User'}</p>
+                    <p className="text-sm font-medium">{userProfile?.name || 'User'}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -86,47 +97,62 @@ export default function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90">
-                Sign In
+              <Button className="bg-[#0B9B9B] hover:bg-[#0DCDCD] text-white rounded-full px-6 h-11 text-sm font-semibold shadow-md transition-all hover:shadow-lg">
+                Sign Up
               </Button>
             </Link>
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
+        {/* Mobile Menu Toggle - Hamburger Icon */}
         <button 
-          className="md:hidden p-2 text-muted-foreground"
+          className="lg:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
         >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+          <div className="w-6 h-5 flex flex-col justify-between">
+            <span className={`w-full h-0.5 bg-gray-700 rounded-full transition-all ${isOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+            <span className={`w-full h-0.5 bg-gray-700 rounded-full transition-all ${isOpen ? 'opacity-0' : ''}`}></span>
+            <span className={`w-full h-0.5 bg-gray-700 rounded-full transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+          </div>
         </button>
       </div>
 
       {/* Mobile Nav */}
       {isOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-indigo-50 p-4 flex flex-col gap-4 animate-in slide-in-from-top-5 shadow-lg">
-          <Link href="/dashboard" className="text-sm font-medium text-muted-foreground p-2 hover:bg-indigo-50 rounded-md" onClick={() => setIsOpen(false)}>Dashboard</Link>
-          <Link href="/materials" className="text-sm font-medium text-muted-foreground p-2 hover:bg-indigo-50 rounded-md" onClick={() => setIsOpen(false)}>Materials</Link>
-          <Link href="/practice" className="text-sm font-medium text-muted-foreground p-2 hover:bg-indigo-50 rounded-md" onClick={() => setIsOpen(false)}>Practice</Link>
-          <Link href="/about" className="text-sm font-medium text-muted-foreground p-2 hover:bg-indigo-50 rounded-md" onClick={() => setIsOpen(false)}>About</Link>
-          <div className="h-px bg-indigo-50 my-2" />
+        <div className="lg:hidden absolute top-20 left-4 right-4 bg-white rounded-2xl border border-gray-200 shadow-xl p-6 flex flex-col gap-4 animate-in slide-in-from-top-5">
+          <Link href="/" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>Home</Link>
+          <Link href="/materials" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>Materials</Link>
+          <Link href="/mentorship" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>Mentorship</Link>
+          <Link href="/about" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>About Us</Link>
+          <div className="h-px bg-gray-200 my-2" />
+          <a 
+            href="https://play.google.com/store/apps/details?id=com.neetpeak" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={() => setIsOpen(false)}
+          >
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white rounded-full w-full h-11 font-semibold shadow-md">
+              Download App
+            </Button>
+          </a>
           {user ? (
             <>
-              <div className="flex items-center gap-3 p-2">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
-                    {user.displayName?.charAt(0) || 'U'}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Avatar className="h-10 w-10 border-2 border-teal-500">
+                  <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.name || 'User'} />
+                  <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-600 text-white font-semibold">
+                    {userProfile?.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.displayName}</p>
+                  <p className="text-sm font-medium truncate">{userProfile?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
               <Button 
                 variant="outline" 
-                className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                className="w-full text-red-600 border-red-200 hover:bg-red-50 rounded-full h-11 font-semibold"
                 onClick={() => {
                   setIsOpen(false);
                   onSignOut();
@@ -138,8 +164,8 @@ export default function Navbar() {
             </>
           ) : (
             <Link href="/login">
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 w-full rounded-full" onClick={() => setIsOpen(false)}>
-                Sign In
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white rounded-full w-full h-11 font-semibold shadow-md" onClick={() => setIsOpen(false)}>
+                Sign Up
               </Button>
             </Link>
           )}

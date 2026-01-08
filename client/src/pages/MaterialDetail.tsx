@@ -12,10 +12,10 @@ const materials = [
     title: "Linear Equations - Full Chapter Notes",
     type: "PDF",
     size: "2.4 MB",
-    color: "bg-blue-50 text-blue-600",
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]",
     description: "Comprehensive notes covering all key concepts of Linear Equations in Two Variables. Includes solved examples, graphical representations, and practice problems.",
     chapters: ["Introduction", "Graphing Lines", "Solving Systems", "Word Problems"],
-    author: "Digraj Sir"
+    author: "NEETPeak"
   },
   {
     id: "2",
@@ -26,7 +26,7 @@ const materials = [
     color: "bg-green-50 text-green-600",
     description: "Visual mind map for quick revision of Carbon and its Compounds. Perfect for last minute exam preparation.",
     chapters: ["Bonding in Carbon", "Versatile Nature", "Chemical Properties", "Soaps and Detergents"],
-    author: "Team DSR"
+    author: "NEETPeak"
   },
   {
     id: "3",
@@ -37,7 +37,7 @@ const materials = [
     color: "bg-green-50 text-green-600",
     description: "Curated list of most frequently asked questions in board exams with model answers.",
     chapters: ["Dobereiner's Triads", "Newlands' Law", "Mendeleev's Table", "Modern Periodic Table"],
-    author: "Team DSR"
+    author: "NEETPeak"
   },
   {
     id: "4",
@@ -48,7 +48,7 @@ const materials = [
     color: "bg-orange-50 text-orange-600",
     description: "Detailed summary of the Nationalism in India chapter. Covers all major movements, dates, and personalities.",
     chapters: ["First World War", "Khilafat Movement", "Non-Cooperation", "Civil Disobedience"],
-    author: "Digraj Sir"
+    author: "NEETPeak"
   },
   {
     id: "5",
@@ -56,10 +56,10 @@ const materials = [
     title: "Grammar Rules Cheat Sheet",
     type: "PDF",
     size: "0.8 MB",
-    color: "bg-purple-50 text-purple-600",
+    color: "bg-[#0DCDCD]/20 text-[#1B5E5E]",
     description: "Quick reference guide for all major English grammar rules including tenses, active-passive voice, and reported speech.",
     chapters: ["Tenses", "Modals", "Subject-Verb Agreement", "Connectors"],
-    author: "Team DSR"
+    author: "NEETPeak"
   }
 ];
 
@@ -93,7 +93,7 @@ export default function MaterialDetail() {
         </Link>
 
         {/* Content Header */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-indigo-50 mb-8">
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-[#0DCDCD]/20 mb-8">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
             {/* Icon Box */}
             <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center ${material.color} bg-opacity-10 shrink-0`}>
@@ -120,7 +120,7 @@ export default function MaterialDetail() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Button size="lg" className="rounded-full bg-blue-600 hover:bg-blue-700 w-full md:w-auto">
+                <Button size="lg" className="rounded-full bg-[#0B9B9B] hover:bg-[#1B5E5E] w-full md:w-auto">
                   <Download className="mr-2 h-5 w-5" /> Download PDF
                 </Button>
                 <Button size="lg" variant="outline" className="rounded-full border-2 w-full md:w-auto">
@@ -138,10 +138,10 @@ export default function MaterialDetail() {
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
             <h3 className="font-heading text-xl font-bold mb-4">What's Inside</h3>
-            <div className="bg-white rounded-2xl border border-indigo-50 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#0DCDCD]/20 overflow-hidden">
               {material.chapters.map((chapter, i) => (
-                <div key={i} className="p-4 border-b border-indigo-50 last:border-0 flex items-center gap-4 hover:bg-indigo-50/50 transition-colors cursor-default">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                <div key={i} className="p-4 border-b border-[#0DCDCD]/20 last:border-0 flex items-center gap-4 hover:bg-[#AFFFFF]/20 transition-colors cursor-default">
+                  <div className="w-8 h-8 rounded-full bg-[#AFFFFF]/40 flex items-center justify-center text-[#1B5E5E] text-sm font-bold">
                     {i + 1}
                   </div>
                   <span className="font-medium text-foreground">{chapter}</span>
@@ -152,8 +152,8 @@ export default function MaterialDetail() {
           
           <div>
             <h3 className="font-heading text-xl font-bold mb-4">Author</h3>
-            <div className="bg-white rounded-2xl p-6 border border-indigo-50 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+            <div className="bg-white rounded-2xl p-6 border border-[#0DCDCD]/20 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#0B9B9B] to-[#1B5E5E] flex items-center justify-center text-white font-bold text-xl">
                 {material.author.charAt(0)}
               </div>
               <div>

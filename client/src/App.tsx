@@ -15,6 +15,7 @@ import MaterialDetail from "@/pages/MaterialDetail";
 import PracticeDetail from "@/pages/PracticeDetail";
 import QuizPlayer from "@/pages/QuizPlayer";
 import AboutUs from "@/pages/AboutUs";
+import Mentorship from "@/pages/Mentorship";
 import Careers from "@/pages/Careers";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/about" component={AboutUs} />
+      <Route path="/mentorship" component={Mentorship} />
       <Route path="/careers" component={Careers} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />

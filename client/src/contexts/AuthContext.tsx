@@ -1,10 +1,18 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } from '@/lib/firebase';
-import { upsertUserProfile, getUserProfile, UserProfile, supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
+import { 
+  supabase, 
+  signInWithGoogle, 
+  signInWithEmail, 
+  signUpWithEmail, 
+  signOut,
+  upsertUserProfile, 
+  getUserProfile, 
+  UserProfile 
+} from '@/lib/supabase';
 
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
@@ -29,7 +37,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,27 +54,85 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Refresh user profile
   const refreshUserProfile = async () => {
     if (user) {
-      await fetchUserProfile(user.uid);
+      await fetchUserProfile(user.id);
     }
   };
 
-  // Listen to Firebase auth state changes
+  // Listen to Supabase auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    // Get initial session
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        const supabaseUser = session?.user ?? null;
+        setUser(supabaseUser);
+        
+        if (supabaseUser) {
+          // Sync user profile in background, don't block loading
+          upsertUserProfile({
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+            avatar_url: supabaseUser.user_metadata?.avatar_url || undefined
+          }).then(() => {
+            if (mounted) {
+              fetchUserProfile(supabaseUser.id);
+            }
+          }).catch(error => {
+            console.error('Error syncing user with Supabase:', error);
+          });
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set a shorter timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth initialization timeout - proceeding without auth');
+        setLoading(false);
+      }
+    }, 2000);
+
+    initAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       
-      if (firebaseUser) {
+      const supabaseUser = session?.user ?? null;
+      setUser(supabaseUser);
+      
+      if (supabaseUser) {
         // User is signed in, sync with Supabase
         try {
           await upsertUserProfile({
-            id: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            name: firebaseUser.displayName || 'User',
-            avatar_url: firebaseUser.photoURL || undefined
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+            avatar_url: supabaseUser.user_metadata?.avatar_url || undefined
           });
           
           // Fetch full profile
-          await fetchUserProfile(firebaseUser.uid);
+          await fetchUserProfile(supabaseUser.id);
         } catch (error) {
           console.error('Error syncing user with Supabase:', error);
         }
@@ -74,29 +140,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // User is signed out
         setUserProfile(null);
       }
-      
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Real-time subscription to Supabase user profile changes
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔔 Setting up real-time subscription for user:', user.uid);
+    console.log('🔔 Setting up real-time subscription for user:', user.id);
 
     // Subscribe to changes in the user's profile
     const channel = supabase
-      .channel(`user-${user.uid}`)
+      .channel(`user-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'users',
-          filter: `id=eq.${user.uid}`
+          filter: `id=eq.${user.id}`
         },
         (payload) => {
           console.log('🔄 Real-time update received:', payload);

@@ -17,7 +17,7 @@ const previousPapers = [
     marks: 80,
     duration: "3 hours",
     downloads: "18.5k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "2",
@@ -29,7 +29,7 @@ const previousPapers = [
     marks: 80,
     duration: "3 hours",
     downloads: "22.3k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "3",
@@ -89,7 +89,7 @@ const previousPapers = [
     marks: 80,
     duration: "3 hours",
     downloads: "17.9k",
-    color: "bg-purple-50 text-purple-600"
+    color: "bg-[#0DCDCD]/20 text-[#1B5E5E]"
   },
   {
     id: "8",
@@ -101,7 +101,7 @@ const previousPapers = [
     marks: 80,
     duration: "3 hours",
     downloads: "21.4k",
-    color: "bg-purple-50 text-purple-600"
+    color: "bg-[#0DCDCD]/20 text-[#1B5E5E]"
   },
   {
     id: "9",
@@ -113,7 +113,7 @@ const previousPapers = [
     marks: 80,
     duration: "3 hours",
     downloads: "12.6k",
-    color: "bg-blue-50 text-blue-600"
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]"
   },
   {
     id: "10",
@@ -140,7 +140,7 @@ export default function PreviousPapers() {
       <div className="container mx-auto px-4 md:px-6 pt-20 pb-12 md:pt-24 md:pb-16">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="font-heading text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] bg-clip-text text-transparent">
             Previous Year Papers
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -189,7 +189,7 @@ export default function PreviousPapers() {
                       <span className="text-xs bg-gray-100 px-2 py-1 rounded-full font-medium">
                         {paper.class}
                       </span>
-                      <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                      <span className="text-xs bg-[#AFFFFF]/30 text-[#1B5E5E] px-2 py-1 rounded-full font-bold flex items-center gap-1">
                         <Calendar size={12} /> {paper.year}
                       </span>
                     </div>
@@ -211,7 +211,7 @@ export default function PreviousPapers() {
                     <Button variant="outline" size="sm" className="gap-2">
                       <Eye size={16} /> View
                     </Button>
-                    <Button size="sm" className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90">
+                    <Button size="sm" className="gap-2 bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90">
                       <Download size={16} /> Download
                     </Button>
                   </div>
@@ -230,29 +230,29 @@ export default function PreviousPapers() {
 
         {/* Info Cards */}
         <div className="grid md:grid-cols-2 gap-6 mt-16 max-w-5xl mx-auto">
-          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+          <Card className="border-none shadow-lg bg-gradient-to-br from-[#AFFFFF]/20 to-[#0DCDCD]/20">
             <CardContent className="p-8">
-              <Award className="h-10 w-10 text-indigo-600 mb-4" />
+              <Award className="h-10 w-10 text-[#0B9B9B] mb-4" />
               <h3 className="font-heading text-xl font-bold mb-3">Marking Schemes Available</h3>
               <p className="text-muted-foreground mb-4">
                 Get detailed marking schemes and solutions for all previous year papers. 
                 Understand how marks are allocated and improve your answer writing.
               </p>
-              <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50">
+              <Button variant="outline" className="border-[#0DCDCD]/30 text-[#0B9B9B] hover:bg-[#AFFFFF]/20">
                 View Solutions
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-none shadow-lg bg-gradient-to-br from-[#5DDDDD]/20 to-[#0B9B9B]/20">
             <CardContent className="p-8">
-              <FileText className="h-10 w-10 text-purple-600 mb-4" />
+              <FileText className="h-10 w-10 text-[#1B5E5E] mb-4" />
               <h3 className="font-heading text-xl font-bold mb-3">Sample Papers 2025</h3>
               <p className="text-muted-foreground mb-4">
                 Practice with latest CBSE sample papers for 2025 board exams. 
                 Get familiar with the new exam pattern and question types.
               </p>
-              <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50">
+              <Button variant="outline" className="border-[#0DCDCD]/30 text-[#1B5E5E] hover:bg-[#AFFFFF]/20">
                 Access Sample Papers
               </Button>
             </CardContent>
@@ -267,7 +267,7 @@ export default function PreviousPapers() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-bold mb-2 flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">1</span>
+                    <span className="h-6 w-6 rounded-full bg-[#AFFFFF]/40 text-[#1B5E5E] flex items-center justify-center text-sm font-bold">1</span>
                     Time Yourself
                   </h4>
                   <p className="text-sm text-muted-foreground">
@@ -276,7 +276,7 @@ export default function PreviousPapers() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-2 flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">2</span>
+                    <span className="h-6 w-6 rounded-full bg-[#AFFFFF]/40 text-[#1B5E5E] flex items-center justify-center text-sm font-bold">2</span>
                     Analyze Patterns
                   </h4>
                   <p className="text-sm text-muted-foreground">
@@ -285,7 +285,7 @@ export default function PreviousPapers() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-2 flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">3</span>
+                    <span className="h-6 w-6 rounded-full bg-[#AFFFFF]/40 text-[#1B5E5E] flex items-center justify-center text-sm font-bold">3</span>
                     Review Mistakes
                   </h4>
                   <p className="text-sm text-muted-foreground">
@@ -294,7 +294,7 @@ export default function PreviousPapers() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-2 flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">4</span>
+                    <span className="h-6 w-6 rounded-full bg-[#AFFFFF]/40 text-[#1B5E5E] flex items-center justify-center text-sm font-bold">4</span>
                     Practice Regularly
                   </h4>
                   <p className="text-sm text-muted-foreground">

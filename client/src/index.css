@@ -43,42 +43,42 @@
 }
 
 :root {
-  /* Base - Very Light Off-White with Blue/Purple tint */
-  --background: 240 20% 98%;
-  --foreground: 240 10% 20%;
+  /* Base - Very Light with Teal tint */
+  --background: 180 20% 98%;
+  --foreground: 180 10% 20%;
 
   /* Cards - White */
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 20%;
+  --card-foreground: 180 10% 20%;
 
   /* Popovers */
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 20%;
+  --popover-foreground: 180 10% 20%;
 
-  /* Primary - Gradient Blue-Purple Base (Solid fallback) */
-  --primary: 250 85% 60%;
+  /* Primary - Atlantis Teal (#0B9B9B) */
+  --primary: 180 85% 33%;
   --primary-foreground: 0 0% 100%;
 
-  /* Secondary - Soft Lavender/Blue */
-  --secondary: 240 30% 94%;
-  --secondary-foreground: 250 85% 60%;
+  /* Secondary - Light Turquoise */
+  --secondary: 180 30% 94%;
+  --secondary-foreground: 180 85% 33%;
 
-  /* Muted - Grays */
-  --muted: 240 10% 94%;
-  --muted-foreground: 240 5% 50%;
+  /* Muted - Grays with teal hint */
+  --muted: 180 10% 94%;
+  --muted-foreground: 180 5% 50%;
 
-  /* Accent - Soft Mint/Coral used for highlights */
-  --accent: 260 50% 96%;
-  --accent-foreground: 260 60% 50%;
+  /* Accent - Verdigris (#0DCDCD) */
+  --accent: 180 90% 43%;
+  --accent-foreground: 0 0% 100%;
 
-  /* Destructive */
-  --destructive: 0 84% 60%;
+  /* Destructive - Coral */
+  --destructive: 0 84% 70%;
   --destructive-foreground: 0 0% 98%;
 
-  /* Borders & Inputs */
-  --border: 240 15% 90%;
-  --input: 240 15% 90%;
-  --ring: 250 85% 60%;
+  /* Borders & Inputs - Light teal tint */
+  --border: 180 15% 90%;
+  --input: 180 15% 90%;
+  --ring: 180 85% 33%;
 
   --radius: 1rem;
 }
@@ -124,11 +124,11 @@
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-linear-to-r from-[#4361EE] to-[#7C3AED];
+    @apply bg-clip-text text-transparent bg-linear-to-r from-[#1B5E5E] to-[#0B9B9B];
   }
   
   .bg-gradient-primary {
-    @apply bg-linear-to-r from-[#4361EE] to-[#7C3AED];
+    @apply bg-linear-to-r from-[#1B5E5E] to-[#0B9B9B];
   }
 
   .glass-card {

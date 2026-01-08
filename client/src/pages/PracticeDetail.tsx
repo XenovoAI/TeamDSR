@@ -13,7 +13,7 @@ const tests = [
     time: "30 mins",
     difficulty: "Medium",
     status: "New",
-    color: "bg-blue-50 text-blue-600",
+    color: "bg-[#AFFFFF]/30 text-[#0B9B9B]",
     description: "Weekly assessment covering Linear Equations and Polynomials.",
     topics: ["Linear Equations", "Polynomials", "Graphing"]
   },
@@ -76,7 +76,7 @@ export default function PracticeDetail() {
 
         <div className="max-w-3xl mx-auto">
           {/* Header Card */}
-          <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-indigo-50 mb-8">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-[#0DCDCD]/20 mb-8">
             <div className={`h-3 w-full ${test.color.split(' ')[0].replace('50', '500')}`} />
             <div className="p-8 md:p-10 text-center">
               <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-6 ${test.color}`}>
@@ -89,17 +89,17 @@ export default function PracticeDetail() {
 
               <div className="flex justify-center items-center gap-6 text-muted-foreground mb-8">
                 <div className="flex flex-col items-center gap-1">
-                  <AlertCircle size={24} className="text-indigo-500" />
+                  <AlertCircle size={24} className="text-[#0B9B9B]" />
                   <span className="text-sm font-medium">{test.questions} Questions</span>
                 </div>
-                <div className="w-px h-10 bg-indigo-50" />
+                <div className="w-px h-10 bg-[#0DCDCD]/20" />
                 <div className="flex flex-col items-center gap-1">
-                  <Clock size={24} className="text-indigo-500" />
+                  <Clock size={24} className="text-[#0B9B9B]" />
                   <span className="text-sm font-medium">{test.time}</span>
                 </div>
-                <div className="w-px h-10 bg-indigo-50" />
+                <div className="w-px h-10 bg-[#0DCDCD]/20" />
                 <div className="flex flex-col items-center gap-1">
-                  <BarChart size={24} className="text-indigo-500" />
+                  <BarChart size={24} className="text-[#0B9B9B]" />
                   <span className="text-sm font-medium">{test.difficulty}</span>
                 </div>
               </div>
@@ -117,7 +117,7 @@ export default function PracticeDetail() {
                 </div>
               ) : (
                 <Link href={`/practice/${test.id}/play`}>
-                  <Button size="lg" className="w-full max-w-sm h-14 text-lg rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 shadow-xl shadow-indigo-200">
+                  <Button size="lg" className="w-full max-w-sm h-14 text-lg rounded-full bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90 shadow-xl shadow-[#0DCDCD]/30">
                     Start Test Now <Play size={20} className="ml-2 fill-current" />
                   </Button>
                 </Link>
@@ -126,12 +126,12 @@ export default function PracticeDetail() {
           </div>
 
           {/* Topics Card */}
-          <div className="bg-white rounded-3xl p-8 border border-indigo-50">
+          <div className="bg-white rounded-3xl p-8 border border-[#0DCDCD]/20">
             <h3 className="font-heading text-xl font-bold mb-4">Topics Covered</h3>
             <p className="text-muted-foreground mb-6">{test.description}</p>
             <div className="flex flex-wrap gap-2">
               {test.topics.map((topic, i) => (
-                <span key={i} className="px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 font-medium text-sm">
+                <span key={i} className="px-4 py-2 rounded-full bg-[#AFFFFF]/30 text-[#1B5E5E] font-medium text-sm">
                   {topic}
                 </span>
               ))}

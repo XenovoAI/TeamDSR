@@ -69,15 +69,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#AFFFFF]/20 via-white to-[#0DCDCD]/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-6 md:mb-8">
-          <div className="inline-flex items-center justify-center h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white mb-3 md:mb-4">
+          <div className="inline-flex items-center justify-center h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-[#1B5E5E] to-[#0B9B9B] text-white mb-3 md:mb-4">
             <BookOpen size={28} className="md:w-8 md:h-8" />
           </div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">Welcome to Team DSR</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Learn Smart, Grow Fast</p>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">Welcome to NEETPeak</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Master NEET, Achieve Excellence</p>
         </div>
 
         {/* Login Card */}
@@ -252,11 +252,11 @@ export default function Login() {
         {/* Features */}
         <div className="mt-6 md:mt-8 grid grid-cols-3 gap-3 md:gap-4 text-center">
           <div>
-            <div className="text-xl md:text-2xl font-bold text-indigo-600">500+</div>
+            <div className="text-xl md:text-2xl font-bold text-[#0B9B9B]">500+</div>
             <div className="text-[10px] md:text-xs text-muted-foreground">Study Notes</div>
           </div>
           <div>
-            <div className="text-xl md:text-2xl font-bold text-purple-600">200+</div>
+            <div className="text-xl md:text-2xl font-bold text-[#0DCDCD]">200+</div>
             <div className="text-[10px] md:text-xs text-muted-foreground">Practice Tests</div>
           </div>
           <div>

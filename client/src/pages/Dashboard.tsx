@@ -25,8 +25,8 @@ export default function Dashboard() {
       if (!user) return;
       try {
         const [userStats, downloads] = await Promise.all([
-          getUserStats(user.uid),
-          getUserDownloadedMaterials(user.uid, 5)
+          getUserStats(user.id),
+          getUserDownloadedMaterials(user.id, 5)
         ]);
         console.log('📊 Dashboard data:', { userStats, downloads });
         setStats(userStats);
@@ -59,14 +59,14 @@ export default function Dashboard() {
           
           {/* Materials Card */}
           <Link href="/materials">
-            <Card className="border-none shadow-md hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 h-full">
+            <Card className="border-none shadow-md hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-[#AFFFFF]/20 to-[#0DCDCD]/20 hover:from-[#AFFFFF]/30 hover:to-[#0DCDCD]/30 h-full">
               <CardContent className="p-6 md:p-8 flex flex-col items-center text-center md:items-start md:text-left h-full">
-                <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-blue-600 mb-4 md:mb-6 group-hover:scale-110 transition-transform">
+                <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#0B9B9B] mb-4 md:mb-6 group-hover:scale-110 transition-transform">
                   <BookOpen size={28} className="md:w-8 md:h-8" />
                 </div>
                 <h2 className="font-heading text-xl md:text-2xl font-bold mb-2">Study Materials</h2>
-                <p className="text-sm md:text-base text-muted-foreground mb-6">Access chapter notes, e-books, and summary guides for all subjects.</p>
-                <Button className="mt-auto bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 md:px-8 w-full md:w-auto text-sm md:text-base">
+                <p className="text-sm md:text-base text-muted-foreground mb-6">Access NEET chapter notes, e-books, and summary guides for Physics, Chemistry, and Biology.</p>
+                <Button className="mt-auto bg-[#0B9B9B] hover:bg-[#1B5E5E] text-white rounded-full px-6 md:px-8 w-full md:w-auto text-sm md:text-base">
                   Browse Notes
                 </Button>
               </CardContent>
@@ -75,14 +75,14 @@ export default function Dashboard() {
 
           {/* Practice Card */}
           <Link href="/practice">
-            <Card className="border-none shadow-md hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 h-full">
+            <Card className="border-none shadow-md hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-[#5DDDDD]/20 to-[#0B9B9B]/20 hover:from-[#5DDDDD]/30 hover:to-[#0B9B9B]/30 h-full">
               <CardContent className="p-6 md:p-8 flex flex-col items-center text-center md:items-start md:text-left h-full">
-                <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-purple-600 mb-4 md:mb-6 group-hover:scale-110 transition-transform">
+                <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#1B5E5E] mb-4 md:mb-6 group-hover:scale-110 transition-transform">
                   <PenTool size={28} className="md:w-8 md:h-8" />
                 </div>
                 <h2 className="font-heading text-xl md:text-2xl font-bold mb-2">Practice Arena</h2>
                 <p className="text-sm md:text-base text-muted-foreground mb-6">Take quizzes, solve mock tests, and track your performance.</p>
-                <Button className="mt-auto bg-purple-600 hover:bg-purple-700 text-white rounded-full px-6 md:px-8 w-full md:w-auto text-sm md:text-base">
+                <Button className="mt-auto bg-[#1B5E5E] hover:bg-[#0B9B9B] text-white rounded-full px-6 md:px-8 w-full md:w-auto text-sm md:text-base">
                   Start Practice
                 </Button>
               </CardContent>
@@ -98,26 +98,26 @@ export default function Dashboard() {
             Quick Stats
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-indigo-600">
+            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-[#0DCDCD]/20">
+              <div className="text-xl md:text-2xl font-bold text-[#0B9B9B]">
                 {loading ? '...' : stats.dayStreak}
               </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Day Streak</div>
             </div>
-            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-purple-600">
+            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-[#0DCDCD]/20">
+              <div className="text-xl md:text-2xl font-bold text-[#1B5E5E]">
                 {loading ? '...' : stats.totalTests}
               </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Tests Taken</div>
             </div>
-            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-blue-600">
+            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-[#0DCDCD]/20">
+              <div className="text-xl md:text-2xl font-bold text-[#0DCDCD]">
                 {loading ? '...' : `${stats.avgScore}%`}
               </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Avg Score</div>
             </div>
-            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-50">
-              <div className="text-xl md:text-2xl font-bold text-orange-500">
+            <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-[#0DCDCD]/20">
+              <div className="text-xl md:text-2xl font-bold text-[#5DDDDD]">
                 {loading ? '...' : stats.notesRead}
               </div>
               <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase">Notes Read</div>
@@ -147,8 +147,8 @@ export default function Dashboard() {
                 const subject = material.chapter?.subject?.name || 'General';
                 const getSubjectColor = (subj: string) => {
                   const colors: any = {
-                    'Mathematics': 'bg-blue-50 text-blue-600',
-                    'Physics': 'bg-purple-50 text-purple-600',
+                    'Mathematics': 'bg-[#AFFFFF]/30 text-[#0B9B9B]',
+                    'Physics': 'bg-[#0DCDCD]/20 text-[#1B5E5E]',
                     'Chemistry': 'bg-green-50 text-green-600',
                     'Biology': 'bg-orange-50 text-orange-600',
                     'English': 'bg-pink-50 text-pink-600'

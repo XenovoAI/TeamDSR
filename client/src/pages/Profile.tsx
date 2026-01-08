@@ -27,7 +27,7 @@ export default function Profile() {
 
     try {
       setLoading(true);
-      await updateUserProfile(user.uid, {
+      await updateUserProfile(user.id, {
         name: formData.name,
         class: formData.class,
         school: formData.school
@@ -71,11 +71,11 @@ export default function Profile() {
 
           {/* Profile Card */}
           <Card className="border-none shadow-lg mb-6">
-            <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-purple-50">
+            <CardHeader className="border-b bg-gradient-to-r from-[#AFFFFF]/20 to-[#0DCDCD]/20">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
                   <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-2xl">
+                  <AvatarFallback className="bg-gradient-to-br from-[#1B5E5E] to-[#0B9B9B] text-white text-2xl">
                     {user.displayName?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -143,7 +143,7 @@ export default function Profile() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90"
+                  className="w-full bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:opacity-90"
                   size="lg"
                 >
                   {loading ? (
@@ -187,7 +187,7 @@ export default function Profile() {
               <div className="flex justify-between items-center py-3">
                 <span className="text-muted-foreground">User ID</span>
                 <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                  {user.uid.substring(0, 12)}...
+                  {user.id.substring(0, 12)}...
                 </span>
               </div>
             </CardContent>
