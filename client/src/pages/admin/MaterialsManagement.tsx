@@ -144,7 +144,7 @@ export default function MaterialsManagement() {
         file_url: fileUrl,
         file_size: fileSize,
         thumbnail_url: thumbnailUrl,
-        created_by: user?.uid,
+        created_by: user?.id,
         is_active: true
       };
 
@@ -273,7 +273,7 @@ export default function MaterialsManagement() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-gradient-to-r from-indigo-600 to-purple-600">
+              <Button onClick={resetForm} className="bg-gradient-to-r from-[#0B9B9B] to-[#1B5E5E]">
                 <Plus className="mr-2" size={20} />
                 Upload Material
               </Button>
@@ -447,13 +447,13 @@ export default function MaterialsManagement() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{materials.length}</div>
+              <div className="text-2xl font-bold text-[#0B9B9B]">{materials.length}</div>
               <div className="text-xs text-muted-foreground">Total Materials</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-[#1B5E5E]">
                 {materials.filter(m => m.material_type === 'pdf').length}
               </div>
               <div className="text-xs text-muted-foreground">PDFs</div>
@@ -461,7 +461,7 @@ export default function MaterialsManagement() {
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-[#0DCDCD]">
                 {materials.filter(m => m.is_premium).length}
               </div>
               <div className="text-xs text-muted-foreground">Premium</div>
@@ -469,7 +469,7 @@ export default function MaterialsManagement() {
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-[#5DDDDD]">
                 {materials.reduce((acc, m) => acc + (m.download_count || 0), 0)}
               </div>
               <div className="text-xs text-muted-foreground">Downloads</div>

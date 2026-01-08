@@ -42,20 +42,14 @@ function Router() {
       <Route path="/study-notes" component={StudyNotes} />
       <Route path="/previous-papers" component={PreviousPapers} />
       
+      {/* Public Routes - No login required */}
+      <Route path="/materials" component={Materials} />
+      <Route path="/materials/:id" component={MaterialDetail} />
+      
       {/* Protected Routes */}
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/materials">
-        <ProtectedRoute>
-          <Materials />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/materials/:id">
-        <ProtectedRoute>
-          <MaterialDetail />
         </ProtectedRoute>
       </Route>
       <Route path="/practice">
