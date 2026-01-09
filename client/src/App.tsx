@@ -10,23 +10,16 @@ import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Materials from "@/pages/Materials";
-import Practice from "@/pages/Practice";
 import MaterialDetail from "@/pages/MaterialDetail";
-import PracticeDetail from "@/pages/PracticeDetail";
-import QuizPlayer from "@/pages/QuizPlayer";
 import AboutUs from "@/pages/AboutUs";
 import Mentorship from "@/pages/Mentorship";
 import Careers from "@/pages/Careers";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
-import StudyNotes from "@/pages/StudyNotes";
-import PreviousPapers from "@/pages/PreviousPapers";
 import Profile from "@/pages/Profile";
 import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AIQuestionGenerator from "@/pages/admin/AIQuestionGenerator";
 import UsersManagement from "@/pages/admin/UsersManagement";
-import QuestionsManagement from "@/pages/admin/QuestionsManagement";
 import MaterialsManagement from "@/pages/admin/MaterialsManagement";
 
 function Router() {
@@ -39,32 +32,15 @@ function Router() {
       <Route path="/careers" component={Careers} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
-      <Route path="/study-notes" component={StudyNotes} />
-      <Route path="/previous-papers" component={PreviousPapers} />
       
       {/* Public Routes - No login required */}
       <Route path="/materials" component={Materials} />
-      <Route path="/materials/:id" component={MaterialDetail} />
+      <Route path="/materials/:slug" component={MaterialDetail} />
       
       {/* Protected Routes */}
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/practice">
-        <ProtectedRoute>
-          <Practice />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/practice/:id">
-        <ProtectedRoute>
-          <PracticeDetail />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/practice/:id/play">
-        <ProtectedRoute>
-          <QuizPlayer />
         </ProtectedRoute>
       </Route>
       <Route path="/profile">
@@ -79,19 +55,9 @@ function Router() {
           <AdminDashboard />
         </AdminRoute>
       </Route>
-      <Route path="/admin/ai-questions">
-        <AdminRoute>
-          <AIQuestionGenerator />
-        </AdminRoute>
-      </Route>
       <Route path="/admin/users">
         <AdminRoute>
           <UsersManagement />
-        </AdminRoute>
-      </Route>
-      <Route path="/admin/questions">
-        <AdminRoute>
-          <QuestionsManagement />
         </AdminRoute>
       </Route>
       <Route path="/admin/materials">

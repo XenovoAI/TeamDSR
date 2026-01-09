@@ -1,39 +1,51 @@
-import { supabase } from './supabase';
+// Direct REST API helper - more reliable than Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const fetchSupabase = async (endpoint: string, options: RequestInit = {}) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+    ...options,
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.method === 'POST' ? 'return=representation' : 'return=minimal',
+      ...options.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `API Error: ${response.status}`);
+  }
+  
+  if (response.status === 204 || options.method === 'HEAD') {
+    return null;
+  }
+  
+  return response.json();
+};
+
+// Get count from a table
+const getCount = async (table: string, filter?: string): Promise<number> => {
+  const endpoint = filter ? `${table}?${filter}&select=id` : `${table}?select=id`;
+  const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Prefer': 'count=exact',
+    },
+  });
+  const count = response.headers.get('content-range')?.split('/')[1];
+  return parseInt(count || '0');
+};
 
 // ============================================
 // USER QUERIES
 // ============================================
 
 export const getAllUsers = async () => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-};
-
-export const getUserStats = async (userId: string) => {
-  // Get user's quiz sessions
-  const { data: sessions, error: sessionsError } = await supabase
-    .from('quiz_sessions')
-    .select('*')
-    .eq('user_id', userId);
-
-  if (sessionsError) throw sessionsError;
-
-  const totalTests = sessions?.length || 0;
-  const avgScore = sessions?.length 
-    ? sessions.reduce((acc, s) => acc + (s.score || 0), 0) / sessions.length 
-    : 0;
-
-  return {
-    totalTests,
-    avgScore: Math.round(avgScore),
-    dayStreak: 31, // TODO: Calculate from actual data
-    notesRead: 5 // TODO: Calculate from actual data
-  };
+  return fetchSupabase('users?order=created_at.desc');
 };
 
 // ============================================
@@ -41,25 +53,7 @@ export const getUserStats = async (userId: string) => {
 // ============================================
 
 export const getAllSubjects = async () => {
-  const { data, error } = await supabase
-    .from('subjects')
-    .select('*')
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
-
-  if (error) throw error;
-  return data;
-};
-
-export const getSubjectById = async (id: string) => {
-  const { data, error } = await supabase
-    .from('subjects')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
+  return fetchSupabase('subjects?is_active=eq.true&order=order_index.asc');
 };
 
 // ============================================
@@ -67,62 +61,7 @@ export const getSubjectById = async (id: string) => {
 // ============================================
 
 export const getChaptersBySubject = async (subjectId: string) => {
-  const { data, error } = await supabase
-    .from('chapters')
-    .select('*')
-    .eq('subject_id', subjectId)
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
-
-  if (error) throw error;
-  return data;
-};
-
-export const getChapterById = async (id: string) => {
-  const { data, error } = await supabase
-    .from('chapters')
-    .select(`
-      *,
-      subject:subjects(*)
-    `)
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// ============================================
-// QUESTION QUERIES
-// ============================================
-
-export const getQuestionsByChapter = async (chapterId: string) => {
-  const { data, error } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('chapter_id', chapterId)
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
-
-  if (error) throw error;
-  return data;
-};
-
-export const getAllQuestions = async () => {
-  const { data, error } = await supabase
-    .from('questions')
-    .select(`
-      *,
-      chapter:chapters(
-        *,
-        subject:subjects(*)
-      )
-    `)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
+  return fetchSupabase(`chapters?subject_id=eq.${subjectId}&is_active=eq.true&order=order_index.asc`);
 };
 
 // ============================================
@@ -130,121 +69,11 @@ export const getAllQuestions = async () => {
 // ============================================
 
 export const getStudyMaterialsByChapter = async (chapterId: string) => {
-  const { data, error } = await supabase
-    .from('study_materials')
-    .select('*')
-    .eq('chapter_id', chapterId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
+  return fetchSupabase(`study_materials?chapter_id=eq.${chapterId}&is_active=eq.true&order=created_at.desc`);
 };
 
 export const getAllStudyMaterials = async () => {
-  const { data, error } = await supabase
-    .from('study_materials')
-    .select(`
-      *,
-      chapter:chapters(
-        *,
-        subject:subjects(*)
-      )
-    `)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-};
-
-// ============================================
-// VIDEO QUERIES
-// ============================================
-
-export const getVideosByChapter = async (chapterId: string) => {
-  const { data, error } = await supabase
-    .from('one_shot_videos')
-    .select('*')
-    .eq('chapter_id', chapterId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-};
-
-export const getAllVideos = async () => {
-  const { data, error } = await supabase
-    .from('one_shot_videos')
-    .select(`
-      *,
-      chapter:chapters(
-        *,
-        subject:subjects(*)
-      )
-    `)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-};
-
-// ============================================
-// QUIZ SESSION QUERIES
-// ============================================
-
-export const createQuizSession = async (sessionData: {
-  user_id: string;
-  chapter_id: string;
-}) => {
-  const { data, error } = await supabase
-    .from('quiz_sessions')
-    .insert(sessionData)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const updateQuizSession = async (
-  sessionId: string,
-  updates: {
-    questions_attempted?: number;
-    correct_answers?: number;
-    score?: number;
-    time_taken?: number;
-    completed_at?: string;
-  }
-) => {
-  const { data, error } = await supabase
-    .from('quiz_sessions')
-    .update(updates)
-    .eq('id', sessionId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const getUserQuizSessions = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('quiz_sessions')
-    .select(`
-      *,
-      chapter:chapters(
-        *,
-        subject:subjects(*)
-      )
-    `)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
+  return fetchSupabase('study_materials?is_active=eq.true&order=created_at.desc&select=*,chapter:chapters(*,subject:subjects(*))');
 };
 
 // ============================================
@@ -252,81 +81,12 @@ export const getUserQuizSessions = async (userId: string) => {
 // ============================================
 
 export const getAdminStats = async () => {
-  // Get counts for all entities
-  const [usersCount, questionsCount, materialsCount, videosCount] = await Promise.all([
-    supabase.from('users').select('id', { count: 'exact', head: true }),
-    supabase.from('questions').select('id', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('study_materials').select('id', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('one_shot_videos').select('id', { count: 'exact', head: true }).eq('is_active', true)
+  const [totalStudents, totalMaterials] = await Promise.all([
+    getCount('users'),
+    getCount('study_materials', 'is_active=eq.true'),
   ]);
 
-  return {
-    totalStudents: usersCount.count || 0,
-    totalQuestions: questionsCount.count || 0,
-    totalMaterials: materialsCount.count || 0,
-    totalVideos: videosCount.count || 0
-  };
-};
-
-export const getRecentActivity = async (limit = 10) => {
-  // Get recent questions
-  const { data: recentQuestions } = await supabase
-    .from('questions')
-    .select('created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  // Get recent materials
-  const { data: recentMaterials } = await supabase
-    .from('study_materials')
-    .select('created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  // Get recent videos
-  const { data: recentVideos } = await supabase
-    .from('one_shot_videos')
-    .select('created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  // Get recent users
-  const { data: recentUsers } = await supabase
-    .from('users')
-    .select('created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  return {
-    recentQuestions: recentQuestions || [],
-    recentMaterials: recentMaterials || [],
-    recentVideos: recentVideos || [],
-    recentUsers: recentUsers || []
-  };
-};
-
-// ============================================
-// REAL-TIME SUBSCRIPTIONS
-// ============================================
-
-export const subscribeToTable = (
-  table: string,
-  callback: (payload: any) => void
-) => {
-  const channel = supabase
-    .channel(`${table}-changes`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: table
-      },
-      callback
-    )
-    .subscribe();
-
-  return channel;
+  return { totalStudents, totalMaterials, totalQuestions: 0, totalVideos: 0 };
 };
 
 // ============================================
@@ -335,69 +95,17 @@ export const subscribeToTable = (
 
 export const trackMaterialDownload = async (userId: string, materialId: string) => {
   try {
-    // Insert or update download record
-    const { error: downloadError } = await supabase
-      .from('user_material_downloads')
-      .upsert({
-        user_id: userId,
-        material_id: materialId,
-        downloaded_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,material_id'
-      });
-
-    if (downloadError) throw downloadError;
-
-    // Increment download count on material
-    const { error: updateError } = await supabase.rpc('increment_download_count', {
-      material_id: materialId
+    const materials = await fetchSupabase(`study_materials?id=eq.${materialId}&select=download_count`);
+    const currentCount = materials?.[0]?.download_count || 0;
+    
+    await fetchSupabase(`study_materials?id=eq.${materialId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ download_count: currentCount + 1 }),
     });
-
-    // If RPC doesn't exist, fallback to manual update
-    if (updateError) {
-      const { data: material } = await supabase
-        .from('study_materials')
-        .select('download_count')
-        .eq('id', materialId)
-        .single();
-
-      await supabase
-        .from('study_materials')
-        .update({ download_count: (material?.download_count || 0) + 1 })
-        .eq('id', materialId);
-    }
 
     return { success: true };
   } catch (error) {
     console.error('Error tracking download:', error);
     return { success: false, error };
   }
-};
-
-export const getUserDownloadedMaterials = async (userId: string, limit = 5) => {
-  console.log('🔍 Fetching downloads for user:', userId);
-  
-  const { data, error } = await supabase
-    .from('user_material_downloads')
-    .select(`
-      *,
-      material:study_materials(
-        *,
-        chapter:chapters(
-          *,
-          subject:subjects(*)
-        )
-      )
-    `)
-    .eq('user_id', userId)
-    .order('downloaded_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('❌ Error fetching downloads:', error);
-    throw error;
-  }
-  
-  console.log('✅ Downloads fetched:', data);
-  return data || [];
 };

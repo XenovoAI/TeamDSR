@@ -6,7 +6,6 @@ import {
   signInWithEmail, 
   signUpWithEmail, 
   signOut,
-  upsertUserProfile, 
   getUserProfile, 
   UserProfile 
 } from '@/lib/supabase';
@@ -41,13 +40,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile from Supabase
+  // Fetch user profile from database
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('🔍 Fetching profile for user:', userId);
       const profile = await getUserProfile(userId);
+      console.log('👤 Profile result:', profile);
       setUserProfile(profile);
+      return profile;
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      return null;
     }
   };
 
@@ -58,14 +61,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Listen to Supabase auth state changes
+  // Initialize auth
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
 
-    // Get initial session
     const initAuth = async () => {
       try {
+        console.log('🔄 Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
@@ -76,23 +78,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
 
-        const supabaseUser = session?.user ?? null;
-        setUser(supabaseUser);
+        const currentUser = session?.user ?? null;
+        console.log('👤 Current user:', currentUser?.email);
+        setUser(currentUser);
         
-        if (supabaseUser) {
-          // Sync user profile in background, don't block loading
-          upsertUserProfile({
-            id: supabaseUser.id,
-            email: supabaseUser.email || '',
-            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-            avatar_url: supabaseUser.user_metadata?.avatar_url || undefined
-          }).then(() => {
-            if (mounted) {
-              fetchUserProfile(supabaseUser.id);
-            }
-          }).catch(error => {
-            console.error('Error syncing user with Supabase:', error);
-          });
+        if (currentUser) {
+          await fetchUserProfile(currentUser.id);
         }
         
         setLoading(false);
@@ -104,40 +95,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     };
 
-    // Set a shorter timeout to prevent infinite loading
-    timeoutId = setTimeout(() => {
-      if (mounted) {
-        console.warn('Auth initialization timeout - proceeding without auth');
+    // Timeout fallback
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth timeout - proceeding');
         setLoading(false);
       }
-    }, 2000);
+    }, 5000);
 
     initAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state changed:', event);
+      
       if (!mounted) return;
       
-      const supabaseUser = session?.user ?? null;
-      setUser(supabaseUser);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
       
-      if (supabaseUser) {
-        // User is signed in, sync with Supabase
-        try {
-          await upsertUserProfile({
-            id: supabaseUser.id,
-            email: supabaseUser.email || '',
-            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-            avatar_url: supabaseUser.user_metadata?.avatar_url || undefined
-          });
-          
-          // Fetch full profile
-          await fetchUserProfile(supabaseUser.id);
-        } catch (error) {
-          console.error('Error syncing user with Supabase:', error);
-        }
+      if (currentUser) {
+        await fetchUserProfile(currentUser.id);
       } else {
-        // User is signed out
         setUserProfile(null);
       }
     });
@@ -149,84 +128,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  // Real-time subscription to Supabase user profile changes
-  useEffect(() => {
-    if (!user) return;
-
-    console.log('🔔 Setting up real-time subscription for user:', user.id);
-
-    // Subscribe to changes in the user's profile
-    const channel = supabase
-      .channel(`user-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'users',
-          filter: `id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('🔄 Real-time update received:', payload);
-          
-          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-            // Update local state with new data
-            setUserProfile(payload.new as UserProfile);
-            console.log('✅ User profile updated in real-time:', payload.new);
-          } else if (payload.eventType === 'DELETE') {
-            setUserProfile(null);
-            console.log('⚠️ User profile deleted');
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
-      });
-
-    // Cleanup subscription on unmount or user change
-    return () => {
-      console.log('🔌 Unsubscribing from real-time updates');
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
   const handleSignInWithGoogle = async () => {
-    try {
-      await signInWithGoogle();
-      // User state will be updated by onAuthStateChanged
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      throw error;
-    }
+    await signInWithGoogle();
   };
 
   const handleSignInWithEmail = async (email: string, password: string) => {
-    try {
-      await signInWithEmail(email, password);
-      // User state will be updated by onAuthStateChanged
-    } catch (error: any) {
-      console.error('Email sign in error:', error);
-      throw error;
-    }
+    await signInWithEmail(email, password);
   };
 
   const handleSignUpWithEmail = async (email: string, password: string, name: string) => {
-    try {
-      await signUpWithEmail(email, password, name);
-      // User state will be updated by onAuthStateChanged
-    } catch (error: any) {
-      console.error('Email sign up error:', error);
-      throw error;
-    }
+    await signUpWithEmail(email, password, name);
   };
 
   const handleSignOut = async () => {
     try {
       await signOut();
+      setUser(null);
       setUserProfile(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign out error:', error);
-      throw error;
+      // Force clear state even if signOut fails
+      setUser(null);
+      setUserProfile(null);
     }
   };
 

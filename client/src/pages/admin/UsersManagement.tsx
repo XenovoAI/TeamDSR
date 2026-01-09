@@ -106,13 +106,13 @@ export default function UsersManagement() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{users.length}</div>
+              <div className="text-2xl font-bold text-[#0B9B9B]">{users.length}</div>
               <div className="text-xs text-muted-foreground">Total Users</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-[#1B5E5E]">
                 {users.filter(u => u.role === 'student').length}
               </div>
               <div className="text-xs text-muted-foreground">Students</div>
@@ -120,7 +120,7 @@ export default function UsersManagement() {
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-[#0DCDCD]">
                 {users.filter(u => u.is_admin).length}
               </div>
               <div className="text-xs text-muted-foreground">Admins</div>
@@ -128,7 +128,7 @@ export default function UsersManagement() {
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-[#5DDDDD]">
                 {users.filter(u => {
                   const created = new Date(u.created_at);
                   const today = new Date();
@@ -192,7 +192,7 @@ export default function UsersManagement() {
                     <div className="flex items-center gap-4 flex-1">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={user.avatar_url} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#0B9B9B] to-[#1B5E5E] text-white">
                           {user.name?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
@@ -200,7 +200,7 @@ export default function UsersManagement() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold">{user.name}</h3>
                           {user.is_admin && (
-                            <Badge variant="default" className="bg-purple-600">
+                            <Badge variant="default" className="bg-[#0B9B9B]">
                               <Shield size={12} className="mr-1" />
                               Admin
                             </Badge>

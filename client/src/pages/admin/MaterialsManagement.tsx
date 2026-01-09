@@ -14,6 +14,29 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Direct fetch helper
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+    ...options,
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `API Error: ${response.status}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+};
+
 export default function MaterialsManagement() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<any[]>([]);
@@ -32,6 +55,7 @@ export default function MaterialsManagement() {
   const [formData, setFormData] = useState({
     chapter_id: "",
     title: "",
+    slug: "",
     description: "",
     material_type: "pdf",
     is_premium: false
@@ -141,6 +165,7 @@ export default function MaterialsManagement() {
 
       const materialData = {
         ...formData,
+        slug: formData.slug || generateSlug(formData.title),
         file_url: fileUrl,
         file_size: fileSize,
         thumbnail_url: thumbnailUrl,
@@ -149,23 +174,20 @@ export default function MaterialsManagement() {
       };
 
       if (editingMaterial) {
-        const { error } = await supabase
-          .from('study_materials')
-          .update(materialData)
-          .eq('id', editingMaterial.id);
-
-        if (error) throw error;
+        await fetchApi(`study_materials?id=eq.${editingMaterial.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(materialData),
+        });
 
         toast({
           title: "Success",
           description: "Material updated successfully"
         });
       } else {
-        const { error } = await supabase
-          .from('study_materials')
-          .insert(materialData);
-
-        if (error) throw error;
+        await fetchApi('study_materials', {
+          method: 'POST',
+          body: JSON.stringify(materialData),
+        });
 
         toast({
           title: "Success",
@@ -192,7 +214,7 @@ export default function MaterialsManagement() {
     if (!confirm('Are you sure you want to delete this material?')) return;
 
     try {
-      // Delete from storage
+      // Delete from storage (keep using supabase client for storage)
       const fileName = fileUrl.split('/').pop();
       if (fileName) {
         await supabase.storage
@@ -200,13 +222,10 @@ export default function MaterialsManagement() {
           .remove([fileName]);
       }
 
-      // Delete from database
-      const { error } = await supabase
-        .from('study_materials')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      // Delete from database using direct fetch
+      await fetchApi(`study_materials?id=eq.${id}`, {
+        method: 'DELETE',
+      });
 
       toast({
         title: "Success",
@@ -229,6 +248,7 @@ export default function MaterialsManagement() {
     setFormData({
       chapter_id: material.chapter_id,
       title: material.title,
+      slug: material.slug || "",
       description: material.description || "",
       material_type: material.material_type,
       is_premium: material.is_premium
@@ -243,10 +263,19 @@ export default function MaterialsManagement() {
     setFormData({
       chapter_id: "",
       title: "",
+      slug: "",
       description: "",
       material_type: "pdf",
       is_premium: false
     });
+  };
+
+  // Auto-generate slug from title
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -325,10 +354,30 @@ export default function MaterialsManagement() {
                   <Label>Title *</Label>
                   <Input
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => {
+                      const title = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        title,
+                        slug: formData.slug || generateSlug(title)
+                      });
+                    }}
                     placeholder="e.g., Algebra Chapter Notes"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>URL Slug *</Label>
+                  <Input
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: generateSlug(e.target.value) })}
+                    placeholder="e.g., algebra-chapter-notes"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    URL: /materials/{formData.slug || 'your-slug-here'}
+                  </p>
                 </div>
 
                 <div className="space-y-2">

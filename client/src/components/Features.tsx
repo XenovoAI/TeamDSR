@@ -1,42 +1,42 @@
-import { BookOpen, Mic, FileText, Sparkles, TrendingUp, Smartphone } from "lucide-react";
+import { BookOpen, FileText, Download, Atom, Beaker, Dna } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
   {
-    icon: <BookOpen className="h-6 w-6 text-[#0B9B9B]" />,
-    title: "Chapter-wise Practice",
-    description: "Interactive exercises with GIFs and real-world examples to master every concept.",
+    icon: <FileText className="h-6 w-6 text-[#0B9B9B]" />,
+    title: "NEET Study Notes",
+    description: "Comprehensive notes for Physics, Chemistry & Biology aligned with NEET syllabus.",
     color: "bg-[#AFFFFF]/30"
   },
   {
-    icon: <Mic className="h-6 w-6 text-[#1B5E5E]" />,
-    title: "Voice Explanations",
-    description: "Listen to expert explanations anytime you're stuck on a NEET topic.",
+    icon: <BookOpen className="h-6 w-6 text-[#1B5E5E]" />,
+    title: "Chapter-wise Materials",
+    description: "Organized study materials for every chapter in the NEET curriculum.",
     color: "bg-[#0DCDCD]/20"
   },
   {
-    icon: <FileText className="h-6 w-6 text-[#0B9B9B]" />,
-    title: "Short Notes & E-books",
-    description: "Concise, beautiful notes to help you revise entire chapters in minutes.",
+    icon: <Download className="h-6 w-6 text-[#0B9B9B]" />,
+    title: "Downloadable PDFs",
+    description: "Download notes and e-books for offline study anytime, anywhere.",
     color: "bg-[#5DDDDD]/20"
   },
   {
-    icon: <Sparkles className="h-6 w-6 text-[#FDB022]" />,
-    title: "AI Generated Questions",
-    description: "Never run out of practice. Get unlimited personalized questions instantly.",
-    color: "bg-[#FDB022]/10"
+    icon: <Atom className="h-6 w-6 text-[#1B5E5E]" />,
+    title: "Physics Resources",
+    description: "Mechanics, Thermodynamics, Optics, Electromagnetism & Modern Physics.",
+    color: "bg-[#0DCDCD]/20"
   },
   {
-    icon: <TrendingUp className="h-6 w-6 text-[#10B981]" />,
-    title: "Progress Tracking",
-    description: "Visualize your growth with beautiful charts and streak rewards.",
-    color: "bg-[#10B981]/10"
+    icon: <Beaker className="h-6 w-6 text-[#0B9B9B]" />,
+    title: "Chemistry Resources",
+    description: "Organic, Inorganic & Physical Chemistry with reaction mechanisms.",
+    color: "bg-[#AFFFFF]/30"
   },
   {
-    icon: <Smartphone className="h-6 w-6 text-[#7C3AED]" />,
-    title: "Mobile-First Design",
-    description: "Learn on the go with an interface designed perfectly for your phone.",
-    color: "bg-[#7C3AED]/10"
+    icon: <Dna className="h-6 w-6 text-[#1B5E5E]" />,
+    title: "Biology Resources",
+    description: "Botany, Zoology, Human Physiology, Genetics & Ecology materials.",
+    color: "bg-[#5DDDDD]/20"
   }
 ];
 
@@ -45,9 +45,9 @@ export default function Features() {
     <section className="py-12 md:py-20 bg-white/50">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
-          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Everything You Need to Excel</h2>
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Complete NEET Preparation</h2>
           <p className="text-muted-foreground text-base md:text-lg">
-            We've built the most comprehensive learning toolkit to help you understand better and score higher.
+            Everything you need to crack NEET - comprehensive study materials for all subjects.
           </p>
         </div>
 

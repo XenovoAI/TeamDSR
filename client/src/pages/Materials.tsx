@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, Search, Eye, BookOpen, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Material {
   id: string;
   title: string;
+  slug?: string;
   description?: string;
   download_count?: number;
   file_url?: string;
@@ -212,86 +214,96 @@ export default function Materials() {
           ) : filteredMaterials.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredMaterials.map((material) => (
-                <Card key={material.id} className="border-none shadow-lg hover:shadow-xl transition-all bg-white group overflow-hidden">
-                  {/* Thumbnail */}
-                  <div className="relative h-40 bg-gradient-to-br from-[#AFFFFF]/30 to-[#0DCDCD]/20 flex items-center justify-center">
-                    {material.thumbnail_url ? (
-                      <img 
-                        src={material.thumbnail_url} 
-                        alt={material.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-[#0B9B9B]">
-                        {getMaterialIcon(material.material_type)}
-                      </div>
-                    )}
-                    {material.is_premium && (
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-yellow-500 text-white">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Premium
-                        </Badge>
-                      </div>
-                    )}
-                    {material.chapter?.subject?.name && (
-                      <div className="absolute top-2 left-2">
-                        <Badge variant="secondary" className="bg-white/90 text-[#1B5E5E]">
-                          {material.chapter.subject.name}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#0B9B9B] transition-colors">
-                      {material.title}
-                    </h3>
-                    
-                    {material.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {material.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                      {material.chapter?.name && (
-                        <span className="truncate">{material.chapter.name}</span>
+                <Link key={material.id} href={`/materials/${material.slug || material.id}`}>
+                  <Card className="border-none shadow-lg hover:shadow-xl transition-all bg-white group overflow-hidden cursor-pointer h-full">
+                    {/* Thumbnail */}
+                    <div className="relative h-40 bg-gradient-to-br from-[#AFFFFF]/30 to-[#0DCDCD]/20 flex items-center justify-center">
+                      {material.thumbnail_url ? (
+                        <img 
+                          src={material.thumbnail_url} 
+                          alt={material.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-[#0B9B9B]">
+                          {getMaterialIcon(material.material_type)}
+                        </div>
                       )}
-                      {material.file_size && (
-                        <>
-                          <span>•</span>
-                          <span>{formatFileSize(material.file_size)}</span>
-                        </>
+                      {material.is_premium && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-yellow-500 text-white">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Premium
+                          </Badge>
+                        </div>
+                      )}
+                      {material.chapter?.subject?.name && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="secondary" className="bg-white/90 text-[#1B5E5E]">
+                            {material.chapter.subject.name}
+                          </Badge>
+                        </div>
                       )}
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Download className="h-3 w-3" />
-                        {material.download_count || 0} downloads
-                      </span>
+                    <CardContent className="p-4">
+                      <h3 className="font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#0B9B9B] transition-colors">
+                        {material.title}
+                      </h3>
                       
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => material.file_url && window.open(material.file_url, '_blank')}
-                          className="h-8 px-3"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDownload(material)}
-                          className="h-8 px-3 bg-[#0B9B9B] hover:bg-[#1B5E5E]"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                      {material.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {material.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                        {material.chapter?.name && (
+                          <span className="truncate">{material.chapter.name}</span>
+                        )}
+                        {material.file_size && (
+                          <>
+                            <span>•</span>
+                            <span>{formatFileSize(material.file_size)}</span>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Download className="h-3 w-3" />
+                          {material.download_count || 0} downloads
+                        </span>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              material.file_url && window.open(material.file_url, '_blank');
+                            }}
+                            className="h-8 px-3"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDownload(material);
+                            }}
+                            className="h-8 px-3 bg-[#0B9B9B] hover:bg-[#1B5E5E]"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           ) : (

@@ -1,11 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Calculator, Atom, Beaker, Dna } from "lucide-react";
+import { Atom, Beaker, Dna } from "lucide-react";
 
 const subjects = [
-  { icon: <Calculator />, name: "Mathematics", color: "text-[#0B9B9B]", bg: "bg-[#AFFFFF]/30", description: "Calculus, Algebra, Trigonometry" },
-  { icon: <Atom />, name: "Physics", color: "text-[#1B5E5E]", bg: "bg-[#0DCDCD]/20", description: "Mechanics, Electromagnetism, Optics" },
-  { icon: <Beaker />, name: "Chemistry", color: "text-[#0B9B9B]", bg: "bg-[#5DDDDD]/20", description: "Organic, Inorganic, Physical" },
-  { icon: <Dna />, name: "Biology", color: "text-[#1B5E5E]", bg: "bg-[#AFFFFF]/40", description: "Botany, Zoology, Genetics" },
+  { icon: <Atom />, name: "Physics", color: "text-[#1B5E5E]", bg: "bg-[#0DCDCD]/20", description: "Mechanics, Electromagnetism, Optics, Modern Physics" },
+  { icon: <Beaker />, name: "Chemistry", color: "text-[#0B9B9B]", bg: "bg-[#5DDDDD]/20", description: "Organic, Inorganic, Physical Chemistry" },
+  { icon: <Dna />, name: "Biology", color: "text-[#1B5E5E]", bg: "bg-[#AFFFFF]/40", description: "Botany, Zoology, Human Physiology, Genetics" },
 ];
 
 export default function Subjects() {
@@ -13,13 +12,13 @@ export default function Subjects() {
     <section className="py-12 md:py-20 bg-gradient-to-b from-white to-[#AFFFFF]/10">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">Master NEET Subjects</h2>
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-2 md:mb-4">NEET Subjects</h2>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-            Comprehensive NEET preparation for Physics, Chemistry, and Biology with expert guidance.
+            Complete study materials for all three NEET subjects - Physics, Chemistry, and Biology
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
           {subjects.map((subject, index) => (
             <Card key={index} className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group bg-white overflow-hidden">
               <CardContent className="p-6 flex flex-col items-center justify-center text-center gap-4 min-h-[180px] relative">
