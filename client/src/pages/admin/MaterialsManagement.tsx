@@ -58,7 +58,9 @@ export default function MaterialsManagement() {
     slug: "",
     description: "",
     material_type: "pdf",
-    is_premium: false
+    is_premium: false,
+    price: 0,
+    original_price: 0
   });
 
   useEffect(() => {
@@ -251,7 +253,9 @@ export default function MaterialsManagement() {
       slug: material.slug || "",
       description: material.description || "",
       material_type: material.material_type,
-      is_premium: material.is_premium
+      is_premium: material.is_premium,
+      price: material.price || 0,
+      original_price: material.original_price || 0
     });
     setIsDialogOpen(true);
   };
@@ -266,7 +270,9 @@ export default function MaterialsManagement() {
       slug: "",
       description: "",
       material_type: "pdf",
-      is_premium: false
+      is_premium: false,
+      price: 0,
+      original_price: 0
     });
   };
 
@@ -462,8 +468,34 @@ export default function MaterialsManagement() {
                     onChange={(e) => setFormData({ ...formData, is_premium: e.target.checked })}
                     className="rounded"
                   />
-                  <Label htmlFor="is_premium">Premium Content</Label>
+                  <Label htmlFor="is_premium">Premium Content (Paid)</Label>
                 </div>
+
+                {formData.is_premium && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Price (₹) *</Label>
+                      <Input
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                        placeholder="e.g., 99"
+                        min="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Original Price (₹)</Label>
+                      <Input
+                        type="number"
+                        value={formData.original_price}
+                        onChange={(e) => setFormData({ ...formData, original_price: parseInt(e.target.value) || 0 })}
+                        placeholder="e.g., 199 (for strikethrough)"
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">Shows as strikethrough if higher than price</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1" disabled={uploading}>
