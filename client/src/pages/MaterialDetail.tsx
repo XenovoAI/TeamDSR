@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Download, Share2, Eye, Loader2, ShoppingCart, Check, IndianRupee, Lock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  ArrowLeft, FileText, Download, Share2, Eye, Loader2, ShoppingCart, 
+  Check, IndianRupee, Lock, BookOpen, Clock, Users, Star, Shield,
+  CheckCircle, Smartphone, Laptop, FileDown
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,6 +32,7 @@ interface Material {
   price?: number;
   original_price?: number;
   file_size?: number;
+  created_at?: string;
   chapter?: {
     id: string;
     name: string;
@@ -47,7 +54,6 @@ export default function MaterialDetail() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load Razorpay script
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
@@ -78,18 +84,11 @@ export default function MaterialDetail() {
     }
   };
 
-  useEffect(() => {
-    if (params?.slug) {
-      fetchMaterial(params.slug);
-    }
-  }, [params?.slug]);
-
   const fetchMaterial = async (slugOrId: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      // First try to fetch by slug
       let response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/study_materials?slug=eq.${encodeURIComponent(slugOrId)}&select=*,chapter:chapters(*,subject:subjects(*))`,
         {
@@ -105,7 +104,6 @@ export default function MaterialDetail() {
         data = await response.json();
       }
       
-      // If not found by slug, try by ID
       if (!data || data.length === 0) {
         response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/study_materials?id=eq.${encodeURIComponent(slugOrId)}&select=*,chapter:chapters(*,subject:subjects(*))`,
@@ -147,7 +145,6 @@ export default function MaterialDetail() {
       return;
     }
 
-    // Track download
     if (user) {
       try {
         await fetch(
@@ -188,11 +185,8 @@ export default function MaterialDetail() {
           text: material?.description,
           url: url,
         });
-      } catch (err) {
-        // User cancelled or error
-      }
+      } catch (err) {}
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(url);
       toast({
         title: "Link Copied",
@@ -265,7 +259,6 @@ export default function MaterialDetail() {
             });
             setIsPurchased(true);
             
-            // Instant download after purchase
             if (material.file_url) {
               setTimeout(() => {
                 window.open(material.file_url, '_blank');
@@ -310,15 +303,18 @@ export default function MaterialDetail() {
     }
   };
 
-  const isFree = !material?.price || material.price === 0;
-  const canAccess = isFree || isPurchased;
-
   const formatFileSize = (bytes?: number) => {
-    if (!bytes) return '';
+    if (!bytes) return 'N/A';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
+
+  const isFree = !material?.price || material.price === 0;
+  const canAccess = isFree || isPurchased;
+  const discountPercent = material?.original_price && material?.price 
+    ? Math.round(((material.original_price - material.price) / material.original_price) * 100)
+    : 0;
 
   if (loading) {
     return (
@@ -352,7 +348,7 @@ export default function MaterialDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#AFFFFF]/20 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#AFFFFF]/10 to-white">
       <Navbar />
       
       <div className="container mx-auto px-4 md:px-6 pt-24 pb-12 md:pt-28">
@@ -363,139 +359,281 @@ export default function MaterialDetail() {
           </Button>
         </Link>
 
-        {/* Content Header */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-[#0DCDCD]/20 mb-8">
-          <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-            {/* Thumbnail */}
-            <div className="w-full md:w-64 h-48 md:h-40 rounded-2xl bg-gradient-to-br from-[#AFFFFF]/30 to-[#0DCDCD]/20 flex items-center justify-center shrink-0 overflow-hidden">
-              {material.thumbnail_url ? (
-                <img 
-                  src={material.thumbnail_url} 
-                  alt={material.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <FileText className="h-16 w-16 text-[#0B9B9B]" />
-              )}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content - Left Side */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Hero Section */}
+            <div className="bg-white rounded-3xl overflow-hidden shadow-lg">
+              {/* Thumbnail */}
+              <div className="relative h-64 md:h-80 bg-gradient-to-br from-[#AFFFFF]/40 to-[#0DCDCD]/30 flex items-center justify-center">
+                {material.thumbnail_url ? (
+                  <img 
+                    src={material.thumbnail_url} 
+                    alt={material.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <FileText className="h-24 w-24 text-[#0B9B9B]/50" />
+                )}
+                
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                  {material.chapter?.subject?.name && (
+                    <Badge className="bg-[#0B9B9B] text-white px-3 py-1">
+                      {material.chapter.subject.name}
+                    </Badge>
+                  )}
+                  {material.chapter?.name && (
+                    <Badge variant="secondary" className="bg-white/90 text-[#1B5E5E] px-3 py-1">
+                      {material.chapter.name}
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="absolute top-4 right-4">
+                  {isFree ? (
+                    <Badge className="bg-green-500 text-white text-sm px-4 py-1">FREE</Badge>
+                  ) : isPurchased ? (
+                    <Badge className="bg-[#0B9B9B] text-white text-sm px-4 py-1">
+                      <Check className="h-3 w-3 mr-1" /> Owned
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-yellow-500 text-white text-sm px-4 py-1">
+                      <Lock className="h-3 w-3 mr-1" /> Premium
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              {/* Title & Description */}
+              <div className="p-6 md:p-8">
+                <h1 className="font-heading text-2xl md:text-3xl font-bold mb-4 text-gray-900">
+                  {material.title}
+                </h1>
+                
+                {material.description && (
+                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-6">
+                    {material.description}
+                  </p>
+                )}
+                
+                {/* Stats */}
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Download className="h-4 w-4 text-[#0B9B9B]" />
+                    <span>{material.download_count || 0} downloads</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FileDown className="h-4 w-4 text-[#0B9B9B]" />
+                    <span>{formatFileSize(material.file_size)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-[#0B9B9B]" />
+                    <span>{material.material_type?.toUpperCase() || 'PDF'}</span>
+                  </div>
+                  {material.created_at && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-[#0B9B9B]" />
+                      <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Title & Info */}
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {material.chapter?.subject?.name && (
-                  <Badge className="bg-[#0B9B9B] text-white">
-                    {material.chapter.subject.name}
-                  </Badge>
-                )}
-                {material.chapter?.name && (
-                  <Badge variant="outline" className="border-[#0DCDCD]/50 text-[#1B5E5E]">
-                    {material.chapter.name}
-                  </Badge>
-                )}
-                {material.material_type && (
-                  <Badge variant="secondary">
-                    {material.material_type.toUpperCase()}
-                  </Badge>
-                )}
-              </div>
-              
-              <h1 className="font-heading text-2xl md:text-3xl font-bold mb-3 leading-tight text-gray-900">
-                {material.title}
-              </h1>
-              
-              {material.description && (
-                <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-4">
-                  {material.description}
-                </p>
-              )}
+            {/* What's Included */}
+            <Card className="border-none shadow-lg">
+              <CardContent className="p-6 md:p-8">
+                <h2 className="font-heading text-xl font-bold mb-6 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-[#0B9B9B]" />
+                  What's Included
+                </h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {[
+                    "Complete chapter coverage",
+                    "NEET-focused content",
+                    "Easy to understand explanations",
+                    "Important formulas & concepts",
+                    "Practice questions included",
+                    "Instant digital download",
+                    "Lifetime access",
+                    "Mobile & desktop compatible"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="h-6 w-6 rounded-full bg-[#AFFFFF]/50 flex items-center justify-center">
+                        <Check className="h-4 w-4 text-[#1B5E5E]" />
+                      </div>
+                      <span className="text-gray-700">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                <span className="flex items-center gap-1">
-                  <Download className="h-4 w-4" />
-                  {material.download_count || 0} downloads
-                </span>
-                {material.file_size && (
-                  <span>Size: {formatFileSize(material.file_size)}</span>
-                )}
-              </div>
+            {/* Why Choose This */}
+            <Card className="border-none shadow-lg">
+              <CardContent className="p-6 md:p-8">
+                <h2 className="font-heading text-xl font-bold mb-6">Why Choose NEETPeak Materials?</h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-[#AFFFFF]/40 flex items-center justify-center mx-auto mb-3">
+                      <Star className="h-7 w-7 text-[#0B9B9B]" />
+                    </div>
+                    <h3 className="font-bold mb-1">Expert Content</h3>
+                    <p className="text-sm text-muted-foreground">Created by NEET experts and toppers</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-[#0DCDCD]/20 flex items-center justify-center mx-auto mb-3">
+                      <Users className="h-7 w-7 text-[#1B5E5E]" />
+                    </div>
+                    <h3 className="font-bold mb-1">Trusted by Students</h3>
+                    <p className="text-sm text-muted-foreground">Thousands of successful aspirants</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-[#5DDDDD]/20 flex items-center justify-center mx-auto mb-3">
+                      <Shield className="h-7 w-7 text-[#0B9B9B]" />
+                    </div>
+                    <h3 className="font-bold mb-1">Secure Payment</h3>
+                    <p className="text-sm text-muted-foreground">100% safe & secure checkout</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              {/* Price Display */}
-              <div className="flex items-center gap-3 mb-6">
-                {isFree ? (
-                  <Badge className="bg-green-500 text-white text-lg px-4 py-1">FREE</Badge>
-                ) : isPurchased ? (
-                  <Badge className="bg-[#0B9B9B] text-white text-lg px-4 py-1">
-                    <Check className="h-4 w-4 mr-1" /> Purchased
-                  </Badge>
-                ) : (
-                  <>
-                    <span className="text-2xl font-bold text-[#1B5E5E] flex items-center">
-                      <IndianRupee className="h-5 w-5" />{material.price}
-                    </span>
-                    {material.original_price && material.original_price > (material.price || 0) && (
-                      <span className="text-lg text-gray-400 line-through flex items-center">
-                        <IndianRupee className="h-4 w-4" />{material.original_price}
-                      </span>
+          {/* Purchase Card - Right Side (Sticky) */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <Card className="border-none shadow-xl bg-white overflow-hidden">
+                <CardContent className="p-0">
+                  {/* Price Header */}
+                  <div className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] p-6 text-white">
+                    {isFree ? (
+                      <div className="text-center">
+                        <span className="text-4xl font-bold">FREE</span>
+                        <p className="text-white/80 mt-1">No payment required</p>
+                      </div>
+                    ) : isPurchased ? (
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <Check className="h-6 w-6" />
+                          <span className="text-2xl font-bold">Purchased</span>
+                        </div>
+                        <p className="text-white/80">You own this material</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-4xl font-bold flex items-center">
+                            <IndianRupee className="h-8 w-8" />{material.price}
+                          </span>
+                          {material.original_price && material.original_price > (material.price || 0) && (
+                            <span className="text-xl text-white/60 line-through flex items-center">
+                              <IndianRupee className="h-5 w-5" />{material.original_price}
+                            </span>
+                          )}
+                        </div>
+                        {discountPercent > 0 && (
+                          <Badge className="mt-2 bg-yellow-400 text-yellow-900">
+                            {discountPercent}% OFF - Limited Time!
+                          </Badge>
+                        )}
+                      </div>
                     )}
-                    <Badge variant="outline" className="text-green-600 border-green-600">
-                      {Math.round(((material.original_price || material.price || 0) - (material.price || 0)) / (material.original_price || 1) * 100)}% OFF
-                    </Badge>
-                  </>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {canAccess ? (
-                  <>
-                    <Button 
-                      size="lg" 
-                      onClick={handleDownload}
-                      className="rounded-full bg-[#0B9B9B] hover:bg-[#1B5E5E] w-full sm:w-auto"
-                    >
-                      <Download className="mr-2 h-5 w-5" /> Download
-                    </Button>
-                    {material.file_url && (
-                      <Button 
-                        size="lg" 
-                        variant="outline" 
-                        onClick={() => window.open(material.file_url, '_blank')}
-                        className="rounded-full border-2 border-[#0DCDCD]/50 hover:bg-[#AFFFFF]/20 w-full sm:w-auto"
-                      >
-                        <Eye className="mr-2 h-5 w-5" /> Preview
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    onClick={handlePurchase}
-                    disabled={processingPayment}
-                    className="rounded-full bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:from-[#0B9B9B] hover:to-[#1B5E5E] w-full sm:w-auto"
-                  >
-                    {processingPayment ? (
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="p-6 space-y-3">
+                    {canAccess ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...
+                        <Button 
+                          size="lg" 
+                          onClick={handleDownload}
+                          className="w-full h-12 rounded-xl bg-[#0B9B9B] hover:bg-[#1B5E5E] text-base"
+                        >
+                          <Download className="mr-2 h-5 w-5" /> Download Now
+                        </Button>
+                        {material.file_url && (
+                          <Button 
+                            size="lg" 
+                            variant="outline" 
+                            onClick={() => window.open(material.file_url, '_blank')}
+                            className="w-full h-12 rounded-xl border-2 text-base"
+                          >
+                            <Eye className="mr-2 h-5 w-5" /> Preview File
+                          </Button>
+                        )}
                       </>
                     ) : (
-                      <>
-                        <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now - ₹{material.price}
-                      </>
+                      <Button 
+                        size="lg" 
+                        onClick={handlePurchase}
+                        disabled={processingPayment}
+                        className="w-full h-14 rounded-xl bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:from-[#0B9B9B] hover:to-[#1B5E5E] text-lg font-bold"
+                      >
+                        {processingPayment ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  onClick={handleShare}
-                  className="rounded-full border-2 w-full sm:w-auto"
-                >
-                  <Share2 className="mr-2 h-5 w-5" /> Share
-                </Button>
-              </div>
+                    
+                    <Button 
+                      size="lg" 
+                      variant="ghost" 
+                      onClick={handleShare}
+                      className="w-full h-10 rounded-xl text-muted-foreground hover:text-[#0B9B9B]"
+                    >
+                      <Share2 className="mr-2 h-4 w-4" /> Share with Friends
+                    </Button>
+                  </div>
+                  
+                  {/* Trust Badges */}
+                  <div className="px-6 pb-6">
+                    <div className="border-t pt-4 space-y-3">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Shield className="h-4 w-4 text-green-500" />
+                        <span>Secure payment via Razorpay</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Download className="h-4 w-4 text-[#0B9B9B]" />
+                        <span>Instant download after purchase</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Smartphone className="h-4 w-4 text-[#0B9B9B]" />
+                        <span>Access on any device</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 text-[#0B9B9B]" />
+                        <span>Lifetime access included</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Help Card */}
+              <Card className="border-none shadow-md mt-4 bg-[#AFFFFF]/20">
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Need help? Contact us at
+                  </p>
+                  <a href="mailto:support@neetpeak.com" className="text-[#0B9B9B] font-medium text-sm hover:underline">
+                    support@neetpeak.com
+                  </a>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
