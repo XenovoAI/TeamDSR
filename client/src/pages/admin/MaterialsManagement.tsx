@@ -60,7 +60,10 @@ export default function MaterialsManagement() {
     material_type: "pdf",
     is_premium: false,
     price: 0,
-    original_price: 0
+    original_price: 0,
+    has_hard_copy: false,
+    hard_copy_price: 0,
+    shipping_cost: 50
   });
 
   useEffect(() => {
@@ -255,7 +258,10 @@ export default function MaterialsManagement() {
       material_type: material.material_type,
       is_premium: material.is_premium,
       price: material.price || 0,
-      original_price: material.original_price || 0
+      original_price: material.original_price || 0,
+      has_hard_copy: material.has_hard_copy || false,
+      hard_copy_price: material.hard_copy_price || 0,
+      shipping_cost: material.shipping_cost || 50
     });
     setIsDialogOpen(true);
   };
@@ -272,7 +278,10 @@ export default function MaterialsManagement() {
       material_type: "pdf",
       is_premium: false,
       price: 0,
-      original_price: 0
+      original_price: 0,
+      has_hard_copy: false,
+      hard_copy_price: 0,
+      shipping_cost: 50
     });
   };
 
@@ -474,7 +483,7 @@ export default function MaterialsManagement() {
                 {formData.is_premium && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Price (₹) *</Label>
+                      <Label>Digital Price (₹) *</Label>
                       <Input
                         type="number"
                         value={formData.price}
@@ -496,6 +505,46 @@ export default function MaterialsManagement() {
                     </div>
                   </div>
                 )}
+
+                {/* Hard Copy Options */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="has_hard_copy"
+                      checked={formData.has_hard_copy}
+                      onChange={(e) => setFormData({ ...formData, has_hard_copy: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="has_hard_copy">Available as Hard Copy (Physical Book)</Label>
+                  </div>
+
+                  {formData.has_hard_copy && (
+                    <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                      <div className="space-y-2">
+                        <Label>Hard Copy Price (₹) *</Label>
+                        <Input
+                          type="number"
+                          value={formData.hard_copy_price}
+                          onChange={(e) => setFormData({ ...formData, hard_copy_price: parseInt(e.target.value) || 0 })}
+                          placeholder="e.g., 299"
+                          min="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Shipping Cost (₹)</Label>
+                        <Input
+                          type="number"
+                          value={formData.shipping_cost}
+                          onChange={(e) => setFormData({ ...formData, shipping_cost: parseInt(e.target.value) || 0 })}
+                          placeholder="e.g., 50"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Added to hard copy price</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1" disabled={uploading}>
@@ -616,6 +665,9 @@ export default function MaterialsManagement() {
                           <h3 className="font-semibold">{material.title}</h3>
                           {material.is_premium && (
                             <Badge variant="default" className="bg-yellow-600">Premium</Badge>
+                          )}
+                          {material.has_hard_copy && (
+                            <Badge variant="default" className="bg-blue-600">Hard Copy</Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{material.description}</p>

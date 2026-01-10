@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Atom, Beaker, Dna } from "lucide-react";
+import { BookOpen, Users, Atom, Beaker, Dna, Package } from "lucide-react";
 import { getAdminStats } from "@/lib/queries";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalStudents: 0,
-    totalMaterials: 0
+    totalMaterials: 0,
+    pendingOrders: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -16,9 +17,25 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       try {
         const adminStats = await getAdminStats();
+        
+        // Fetch pending orders count
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const ordersRes = await fetch(
+          `${supabaseUrl}/rest/v1/purchases?delivery_type=eq.physical&delivery_status=in.(pending,processing)&select=id`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            }
+          }
+        );
+        const ordersData = await ordersRes.json();
+        
         setStats({
           totalStudents: adminStats.totalStudents,
-          totalMaterials: adminStats.totalMaterials
+          totalMaterials: adminStats.totalMaterials,
+          pendingOrders: Array.isArray(ordersData) ? ordersData.length : 0
         });
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -76,7 +93,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Admin Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
+        <div className="grid md:grid-cols-3 gap-6 max-w-4xl">
           <Link href="/admin/materials">
             <Card className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group h-full">
               <CardHeader className="pb-3">
@@ -93,6 +110,32 @@ export default function AdminDashboard() {
                 </p>
                 <div className="text-xs font-bold text-[#0B9B9B]">
                   {loading ? '...' : stats.totalMaterials} materials
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/orders">
+            <Card className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group h-full">
+              <CardHeader className="pb-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#5DDDDD] to-[#0DCDCD] flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform relative">
+                  <Package size={24} />
+                  {stats.pendingOrders > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {stats.pendingOrders}
+                    </span>
+                  )}
+                </div>
+                <CardTitle className="text-lg group-hover:text-[#0B9B9B] transition-colors">
+                  Orders
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Manage hard copy orders, update shipping status, and track deliveries.
+                </p>
+                <div className="text-xs font-bold text-[#0B9B9B]">
+                  {loading ? '...' : stats.pendingOrders} pending orders
                 </div>
               </CardContent>
             </Card>

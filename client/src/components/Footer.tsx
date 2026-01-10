@@ -34,6 +34,8 @@ export default function Footer() {
               <li><a href="/careers" className="hover:text-[#0B9B9B]">Careers</a></li>
               <li><a href="/privacy" className="hover:text-[#0B9B9B]">Privacy Policy</a></li>
               <li><a href="/terms" className="hover:text-[#0B9B9B]">Terms of Service</a></li>
+              <li><a href="/shipping" className="hover:text-[#0B9B9B]">Shipping Policy</a></li>
+              <li><a href="/refund" className="hover:text-[#0B9B9B]">Refund & Cancellation</a></li>
             </ul>
           </div>
           
@@ -41,6 +43,7 @@ export default function Footer() {
             <h4 className="font-bold mb-4 text-foreground">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="mailto:support@neetpeak.com" className="hover:text-[#0B9B9B]">support@neetpeak.com</a></li>
+              <li><a href="/track" className="hover:text-[#0B9B9B]">Track Your Order</a></li>
             </ul>
           </div>
         </div>

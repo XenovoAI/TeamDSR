@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
-  ArrowLeft, FileText, Download, Share2, Eye, Loader2, ShoppingCart, 
-  Check, IndianRupee, Lock, BookOpen, Clock, Users, Star, Shield,
-  CheckCircle, Smartphone, Laptop, FileDown
+  ArrowLeft, FileText, Download, Share2, Eye, Loader2,
+  Check, IndianRupee, Lock, BookOpen, Clock, Star, Shield,
+  CheckCircle, Smartphone, FileDown, Package, X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -33,6 +34,9 @@ interface Material {
   original_price?: number;
   file_size?: number;
   created_at?: string;
+  has_hard_copy?: boolean;
+  hard_copy_price?: number;
+  shipping_cost?: number;
   chapter?: {
     id: string;
     name: string;
@@ -43,6 +47,16 @@ interface Material {
   };
 }
 
+interface ShippingAddress {
+  name: string;
+  phone: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 export default function MaterialDetail() {
   const [, params] = useRoute("/materials/:slug");
   const [material, setMaterial] = useState<Material | null>(null);
@@ -50,6 +64,16 @@ export default function MaterialDetail() {
   const [error, setError] = useState<string | null>(null);
   const [isPurchased, setIsPurchased] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    name: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -195,7 +219,7 @@ export default function MaterialDetail() {
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (type: 'digital' | 'physical' = 'digital') => {
     if (!user) {
       toast({
         title: "Login Required",
@@ -205,7 +229,24 @@ export default function MaterialDetail() {
       return;
     }
 
-    if (!material?.price || material.price === 0) {
+    // For physical purchase, validate address
+    if (type === 'physical') {
+      if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address_line1 || 
+          !shippingAddress.city || !shippingAddress.state || !shippingAddress.pincode) {
+        toast({
+          title: "Address Required",
+          description: "Please fill in all required address fields",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    const price = type === 'physical' 
+      ? (material?.hard_copy_price || 0) + (material?.shipping_cost || 0)
+      : (material?.price || 0);
+
+    if (price === 0 && type === 'digital') {
       handleDownload();
       return;
     }
@@ -217,9 +258,11 @@ export default function MaterialDetail() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: material.price,
-          materialId: material.id,
+          amount: price,
+          materialId: material?.id,
           userId: user.id,
+          deliveryType: type,
+          shippingAddress: type === 'physical' ? shippingAddress : null,
         }),
       });
 
@@ -234,7 +277,7 @@ export default function MaterialDetail() {
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'NEETPeak',
-        description: material.title,
+        description: type === 'physical' ? `${material?.title} (Hard Copy)` : material?.title,
         order_id: orderData.orderId,
         handler: async (response: any) => {
           const verifyResponse = await fetch('/api/verify-payment', {
@@ -244,9 +287,11 @@ export default function MaterialDetail() {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              materialId: material.id,
+              materialId: material?.id,
               userId: user.id,
-              amount: material.price,
+              amount: price,
+              deliveryType: type,
+              shippingAddress: type === 'physical' ? shippingAddress : null,
             }),
           });
 
@@ -254,19 +299,18 @@ export default function MaterialDetail() {
 
           if (verifyData.success) {
             toast({
-              title: "Purchase Successful!",
-              description: `You now have access to ${material.title}`,
+              title: "Purchase Successful! 🎉",
+              description: type === 'physical' 
+                ? `Your hard copy will be shipped soon!`
+                : `You now have access to ${material?.title}`,
             });
             setIsPurchased(true);
+            setShowAddressModal(false);
             
-            if (material.file_url) {
+            if (type === 'digital' && material?.file_url) {
               setTimeout(() => {
                 window.open(material.file_url, '_blank');
-                toast({
-                  title: "Download Started",
-                  description: "Your file is downloading. You can also access it from your Dashboard.",
-                });
-              }, 1000);
+              }, 500);
             }
           } else {
             toast({
@@ -279,6 +323,7 @@ export default function MaterialDetail() {
         },
         prefill: {
           email: user.email,
+          contact: shippingAddress.phone || '',
         },
         theme: {
           color: '#0B9B9B',
@@ -315,6 +360,7 @@ export default function MaterialDetail() {
   const discountPercent = material?.original_price && material?.price 
     ? Math.round(((material.original_price - material.price) / material.original_price) * 100)
     : 0;
+  const hardCopyTotal = (material?.hard_copy_price || 0) + (material?.shipping_cost || 0);
 
   if (loading) {
     return (
@@ -348,208 +394,230 @@ export default function MaterialDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#AFFFFF]/10 to-white">
+    <div className="min-h-screen bg-gray-50 pb-32 md:pb-8">
       <Navbar />
       
-      <div className="container mx-auto px-4 md:px-6 pt-24 pb-12 md:pt-28">
+      {/* Address Modal for Hard Copy */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center">
+          <div className="bg-white w-full md:w-[450px] md:rounded-2xl rounded-t-3xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
+              <h3 className="font-bold text-lg">Shipping Address</h3>
+              <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              <Input
+                placeholder="Full Name *"
+                value={shippingAddress.name}
+                onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})}
+                className="h-12"
+              />
+              <Input
+                placeholder="Phone Number *"
+                type="tel"
+                value={shippingAddress.phone}
+                onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
+                className="h-12"
+              />
+              <Input
+                placeholder="Address Line 1 *"
+                value={shippingAddress.address_line1}
+                onChange={(e) => setShippingAddress({...shippingAddress, address_line1: e.target.value})}
+                className="h-12"
+              />
+              <Input
+                placeholder="Address Line 2 (Optional)"
+                value={shippingAddress.address_line2}
+                onChange={(e) => setShippingAddress({...shippingAddress, address_line2: e.target.value})}
+                className="h-12"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  placeholder="City *"
+                  value={shippingAddress.city}
+                  onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})}
+                  className="h-12"
+                />
+                <Input
+                  placeholder="State *"
+                  value={shippingAddress.state}
+                  onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})}
+                  className="h-12"
+                />
+              </div>
+              <Input
+                placeholder="Pincode *"
+                type="tel"
+                value={shippingAddress.pincode}
+                onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})}
+                className="h-12"
+              />
+            </div>
+            
+            <div className="sticky bottom-0 bg-white border-t p-4">
+              <Button 
+                onClick={() => handlePurchase('physical')}
+                disabled={processingPayment}
+                className="w-full h-14 text-lg font-bold bg-[#0B9B9B] hover:bg-[#1B5E5E] rounded-xl"
+              >
+                {processingPayment ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>Pay ₹{hardCopyTotal}</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="container mx-auto px-4 pt-20 md:pt-24">
         {/* Back Button */}
         <Link href="/materials">
-          <Button variant="ghost" className="mb-6 pl-0 hover:pl-2 transition-all text-muted-foreground hover:text-[#0B9B9B]">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Materials
+          <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground">
+            <ArrowLeft className="mr-1 h-4 w-4" /> Back
           </Button>
         </Link>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content - Left Side */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Hero Section */}
-            <div className="bg-white rounded-3xl overflow-hidden shadow-lg">
-              {/* Thumbnail */}
-              <div className="relative h-64 md:h-80 bg-gradient-to-br from-[#AFFFFF]/40 to-[#0DCDCD]/30 flex items-center justify-center">
-                {material.thumbnail_url ? (
-                  <img 
-                    src={material.thumbnail_url} 
-                    alt={material.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <FileText className="h-24 w-24 text-[#0B9B9B]/50" />
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* Left - Product Info */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Image */}
+            <div className="relative aspect-[4/3] md:aspect-[16/9] bg-white rounded-2xl overflow-hidden shadow-sm">
+              {material.thumbnail_url ? (
+                <img 
+                  src={material.thumbnail_url} 
+                  alt={material.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#AFFFFF]/40 to-[#0DCDCD]/30 flex items-center justify-center">
+                  <FileText className="h-20 w-20 text-[#0B9B9B]/50" />
+                </div>
+              )}
+              
+              {/* Badges on image */}
+              <div className="absolute top-3 left-3 flex gap-2">
+                {material.chapter?.subject?.name && (
+                  <Badge className="bg-[#0B9B9B] text-white text-xs">
+                    {material.chapter.subject.name}
+                  </Badge>
                 )}
-                
-                {/* Badges */}
-                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  {material.chapter?.subject?.name && (
-                    <Badge className="bg-[#0B9B9B] text-white px-3 py-1">
-                      {material.chapter.subject.name}
-                    </Badge>
-                  )}
-                  {material.chapter?.name && (
-                    <Badge variant="secondary" className="bg-white/90 text-[#1B5E5E] px-3 py-1">
-                      {material.chapter.name}
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="absolute top-4 right-4">
-                  {isFree ? (
-                    <Badge className="bg-green-500 text-white text-sm px-4 py-1">FREE</Badge>
-                  ) : isPurchased ? (
-                    <Badge className="bg-[#0B9B9B] text-white text-sm px-4 py-1">
-                      <Check className="h-3 w-3 mr-1" /> Owned
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-yellow-500 text-white text-sm px-4 py-1">
-                      <Lock className="h-3 w-3 mr-1" /> Premium
-                    </Badge>
-                  )}
-                </div>
               </div>
               
-              {/* Title & Description */}
-              <div className="p-6 md:p-8">
-                <h1 className="font-heading text-2xl md:text-3xl font-bold mb-4 text-gray-900">
-                  {material.title}
-                </h1>
-                
-                {material.description && (
-                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-6">
-                    {material.description}
-                  </p>
+              <div className="absolute top-3 right-3">
+                {isFree ? (
+                  <Badge className="bg-green-500 text-white">FREE</Badge>
+                ) : isPurchased ? (
+                  <Badge className="bg-[#0B9B9B] text-white">
+                    <Check className="h-3 w-3 mr-1" /> Owned
+                  </Badge>
+                ) : (
+                  <Badge className="bg-yellow-500 text-white">
+                    <Lock className="h-3 w-3 mr-1" /> Premium
+                  </Badge>
                 )}
-                
-                {/* Stats */}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Download className="h-4 w-4 text-[#0B9B9B]" />
-                    <span>{material.download_count || 0} downloads</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FileDown className="h-4 w-4 text-[#0B9B9B]" />
-                    <span>{formatFileSize(material.file_size)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-[#0B9B9B]" />
-                    <span>{material.material_type?.toUpperCase() || 'PDF'}</span>
-                  </div>
-                  {material.created_at && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-[#0B9B9B]" />
-                      <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
-            {/* What's Included */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="p-6 md:p-8">
-                <h2 className="font-heading text-xl font-bold mb-6 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-[#0B9B9B]" />
-                  What's Included
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    "Complete chapter coverage",
-                    "NEET-focused content",
-                    "Easy to understand explanations",
-                    "Important formulas & concepts",
-                    "Practice questions included",
-                    "Instant digital download",
-                    "Lifetime access",
-                    "Mobile & desktop compatible"
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="h-6 w-6 rounded-full bg-[#AFFFFF]/50 flex items-center justify-center">
-                        <Check className="h-4 w-4 text-[#1B5E5E]" />
-                      </div>
-                      <span className="text-gray-700">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Title & Info */}
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm">
+              <h1 className="font-bold text-xl md:text-2xl text-gray-900 mb-2">
+                {material.title}
+              </h1>
+              
+              {material.description && (
+                <p className="text-muted-foreground text-sm md:text-base mb-4">
+                  {material.description}
+                </p>
+              )}
+              
+              {/* Stats Row */}
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <Download className="h-3 w-3" /> {material.download_count || 0}
+                </span>
+                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <FileDown className="h-3 w-3" /> {formatFileSize(material.file_size)}
+                </span>
+                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <BookOpen className="h-3 w-3" /> {material.material_type?.toUpperCase() || 'PDF'}
+                </span>
+                {material.created_at && (
+                  <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                    <Clock className="h-3 w-3" /> {new Date(material.created_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
 
-            {/* Why Choose This */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="p-6 md:p-8">
-                <h2 className="font-heading text-xl font-bold mb-6">Why Choose NEETPeak Materials?</h2>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="h-14 w-14 rounded-2xl bg-[#AFFFFF]/40 flex items-center justify-center mx-auto mb-3">
-                      <Star className="h-7 w-7 text-[#0B9B9B]" />
-                    </div>
-                    <h3 className="font-bold mb-1">Expert Content</h3>
-                    <p className="text-sm text-muted-foreground">Created by NEET experts and toppers</p>
+            {/* What's Included - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:block bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-[#0B9B9B]" />
+                What's Included
+              </h2>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[
+                  "Complete chapter coverage",
+                  "NEET-focused content",
+                  "Important formulas",
+                  "Practice questions",
+                  "Instant download",
+                  "Lifetime access"
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-[#0B9B9B]" />
+                    <span>{item}</span>
                   </div>
-                  <div className="text-center">
-                    <div className="h-14 w-14 rounded-2xl bg-[#0DCDCD]/20 flex items-center justify-center mx-auto mb-3">
-                      <Users className="h-7 w-7 text-[#1B5E5E]" />
-                    </div>
-                    <h3 className="font-bold mb-1">Trusted by Students</h3>
-                    <p className="text-sm text-muted-foreground">Thousands of successful aspirants</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="h-14 w-14 rounded-2xl bg-[#5DDDDD]/20 flex items-center justify-center mx-auto mb-3">
-                      <Shield className="h-7 w-7 text-[#0B9B9B]" />
-                    </div>
-                    <h3 className="font-bold mb-1">Secure Payment</h3>
-                    <p className="text-sm text-muted-foreground">100% safe & secure checkout</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Purchase Card - Right Side (Sticky) */}
-          <div className="lg:col-span-1">
+          {/* Right - Purchase Card (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-2">
             <div className="sticky top-24">
-              <Card className="border-none shadow-xl bg-white overflow-hidden">
+              <Card className="border-none shadow-lg overflow-hidden">
                 <CardContent className="p-0">
                   {/* Price Header */}
-                  <div className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] p-6 text-white">
+                  <div className="bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] p-5 text-white text-center">
                     {isFree ? (
-                      <div className="text-center">
-                        <span className="text-4xl font-bold">FREE</span>
-                        <p className="text-white/80 mt-1">No payment required</p>
-                      </div>
+                      <span className="text-3xl font-bold">FREE</span>
                     ) : isPurchased ? (
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                          <Check className="h-6 w-6" />
-                          <span className="text-2xl font-bold">Purchased</span>
-                        </div>
-                        <p className="text-white/80">You own this material</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <Check className="h-6 w-6" />
+                        <span className="text-2xl font-bold">Purchased</span>
                       </div>
                     ) : (
-                      <div className="text-center">
+                      <div>
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-4xl font-bold flex items-center">
-                            <IndianRupee className="h-8 w-8" />{material.price}
-                          </span>
+                          <span className="text-3xl font-bold">₹{material.price}</span>
                           {material.original_price && material.original_price > (material.price || 0) && (
-                            <span className="text-xl text-white/60 line-through flex items-center">
-                              <IndianRupee className="h-5 w-5" />{material.original_price}
-                            </span>
+                            <span className="text-lg text-white/60 line-through">₹{material.original_price}</span>
                           )}
                         </div>
                         {discountPercent > 0 && (
-                          <Badge className="mt-2 bg-yellow-400 text-yellow-900">
-                            {discountPercent}% OFF - Limited Time!
+                          <Badge className="mt-2 bg-yellow-400 text-yellow-900 text-xs">
+                            {discountPercent}% OFF
                           </Badge>
                         )}
                       </div>
                     )}
                   </div>
                   
-                  {/* Action Buttons */}
-                  <div className="p-6 space-y-3">
+                  {/* Buttons */}
+                  <div className="p-5 space-y-3">
                     {canAccess ? (
                       <>
                         <Button 
                           size="lg" 
                           onClick={handleDownload}
-                          className="w-full h-12 rounded-xl bg-[#0B9B9B] hover:bg-[#1B5E5E] text-base"
+                          className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E]"
                         >
                           <Download className="mr-2 h-5 w-5" /> Download Now
                         </Button>
@@ -558,74 +626,65 @@ export default function MaterialDetail() {
                             size="lg" 
                             variant="outline" 
                             onClick={() => window.open(material.file_url, '_blank')}
-                            className="w-full h-12 rounded-xl border-2 text-base"
+                            className="w-full h-12"
                           >
-                            <Eye className="mr-2 h-5 w-5" /> Preview File
+                            <Eye className="mr-2 h-5 w-5" /> Preview
                           </Button>
                         )}
                       </>
                     ) : (
-                      <Button 
-                        size="lg" 
-                        onClick={handlePurchase}
-                        disabled={processingPayment}
-                        className="w-full h-14 rounded-xl bg-gradient-to-r from-[#1B5E5E] to-[#0B9B9B] hover:from-[#0B9B9B] hover:to-[#1B5E5E] text-lg font-bold"
-                      >
-                        {processingPayment ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now
-                          </>
+                      <>
+                        <Button 
+                          size="lg" 
+                          onClick={() => handlePurchase('digital')}
+                          disabled={processingPayment}
+                          className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold"
+                        >
+                          {processingPayment ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <>
+                              <Download className="mr-2 h-5 w-5" /> Buy Digital - ₹{material.price}
+                            </>
+                          )}
+                        </Button>
+                        
+                        {material.has_hard_copy && (
+                          <Button 
+                            size="lg" 
+                            variant="outline"
+                            onClick={() => setShowAddressModal(true)}
+                            className="w-full h-12 border-2 border-[#0B9B9B] text-[#1B5E5E]"
+                          >
+                            <Package className="mr-2 h-5 w-5" /> 
+                            Hard Copy - ₹{hardCopyTotal}
+                          </Button>
                         )}
-                      </Button>
+                      </>
                     )}
                     
                     <Button 
-                      size="lg" 
                       variant="ghost" 
                       onClick={handleShare}
-                      className="w-full h-10 rounded-xl text-muted-foreground hover:text-[#0B9B9B]"
+                      className="w-full text-muted-foreground"
                     >
-                      <Share2 className="mr-2 h-4 w-4" /> Share with Friends
+                      <Share2 className="mr-2 h-4 w-4" /> Share
                     </Button>
                   </div>
                   
-                  {/* Trust Badges */}
-                  <div className="px-6 pb-6">
-                    <div className="border-t pt-4 space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  {/* Trust */}
+                  <div className="px-5 pb-5 pt-2 border-t">
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-green-500" />
-                        <span>Secure payment via Razorpay</span>
+                        Secure payment via Razorpay
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Download className="h-4 w-4 text-[#0B9B9B]" />
-                        <span>Instant download after purchase</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 text-[#0B9B9B]" />
-                        <span>Access on any device</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4 text-[#0B9B9B]" />
-                        <span>Lifetime access included</span>
+                        Access on any device
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Help Card */}
-              <Card className="border-none shadow-md mt-4 bg-[#AFFFFF]/20">
-                <CardContent className="p-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Need help? Contact us at
-                  </p>
-                  <a href="mailto:support@neetpeak.com" className="text-[#0B9B9B] font-medium text-sm hover:underline">
-                    support@neetpeak.com
-                  </a>
                 </CardContent>
               </Card>
             </div>
@@ -633,7 +692,78 @@ export default function MaterialDetail() {
         </div>
       </div>
       
-      <Footer />
+      {/* Mobile Sticky Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:hidden z-40">
+        <div className="flex items-center gap-3">
+          {/* Price */}
+          <div className="flex-shrink-0">
+            {isFree ? (
+              <span className="text-xl font-bold text-green-600">FREE</span>
+            ) : isPurchased ? (
+              <span className="text-lg font-bold text-[#0B9B9B]">Owned</span>
+            ) : (
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xl font-bold text-gray-900">₹{material.price}</span>
+                  {material.original_price && material.original_price > (material.price || 0) && (
+                    <span className="text-sm text-gray-400 line-through">₹{material.original_price}</span>
+                  )}
+                </div>
+                {discountPercent > 0 && (
+                  <span className="text-xs text-green-600 font-medium">{discountPercent}% off</span>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Buttons */}
+          <div className="flex-1 flex gap-2">
+            {canAccess ? (
+              <Button 
+                onClick={handleDownload}
+                className="flex-1 h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-base rounded-xl"
+              >
+                <Download className="mr-2 h-5 w-5" /> Download
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => handlePurchase('digital')}
+                  disabled={processingPayment}
+                  className="flex-1 h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-base rounded-xl"
+                >
+                  {processingPayment ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'Buy Digital'
+                  )}
+                </Button>
+                
+                {material.has_hard_copy && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowAddressModal(true)}
+                    className="h-12 px-4 border-2 border-[#0B9B9B] text-[#1B5E5E] font-bold rounded-xl"
+                  >
+                    <Package className="h-5 w-5" />
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Hard copy price hint */}
+        {!canAccess && material.has_hard_copy && (
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            Hard copy available for ₹{hardCopyTotal} (incl. shipping)
+          </p>
+        )}
+      </div>
+      
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }

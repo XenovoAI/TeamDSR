@@ -16,11 +16,15 @@ import Mentorship from "@/pages/Mentorship";
 import Careers from "@/pages/Careers";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
+import ShippingPolicy from "@/pages/ShippingPolicy";
+import RefundPolicy from "@/pages/RefundPolicy";
+import TrackOrder from "@/pages/TrackOrder";
 import Profile from "@/pages/Profile";
 import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UsersManagement from "@/pages/admin/UsersManagement";
 import MaterialsManagement from "@/pages/admin/MaterialsManagement";
+import OrdersManagement from "@/pages/admin/OrdersManagement";
 
 function Router() {
   return (
@@ -32,6 +36,9 @@ function Router() {
       <Route path="/careers" component={Careers} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
+      <Route path="/shipping" component={ShippingPolicy} />
+      <Route path="/refund" component={RefundPolicy} />
+      <Route path="/track" component={TrackOrder} />
       
       {/* Public Routes - No login required */}
       <Route path="/materials" component={Materials} />
@@ -63,6 +70,11 @@ function Router() {
       <Route path="/admin/materials">
         <AdminRoute>
           <MaterialsManagement />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/orders">
+        <AdminRoute>
+          <OrdersManagement />
         </AdminRoute>
       </Route>
       
