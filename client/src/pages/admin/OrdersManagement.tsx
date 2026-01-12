@@ -20,7 +20,9 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 interface Order {
   id: string;
   user_id: string;
-  material_id: string;
+  material_id: string | null;
+  product_id: string | null;
+  product_type: string;
   amount: number;
   delivery_type: string;
   shipping_address: {
@@ -42,9 +44,10 @@ interface Order {
   shiprocket_shipment_id: string | null;
   material?: {
     title: string;
-    hard_copy_price: number;
-    shipping_cost: number;
-  };
+  } | null;
+  product?: {
+    title: string;
+  } | null;
 }
 
 interface Courier {
@@ -84,8 +87,9 @@ export default function OrdersManagement() {
 
   const fetchOrders = async () => {
     try {
+      // Fetch all physical orders (both from study_materials and hard_copy_products)
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?delivery_type=eq.physical&select=*,material:study_materials(title,hard_copy_price,shipping_cost)&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/purchases?delivery_type=eq.physical&select=*,material:study_materials(title),product:hard_copy_products(title)&order=created_at.desc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -122,6 +126,7 @@ export default function OrdersManagement() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(o =>
         o.material?.title?.toLowerCase().includes(query) ||
+        o.product?.title?.toLowerCase().includes(query) ||
         o.shipping_address?.name?.toLowerCase().includes(query) ||
         o.tracking_number?.toLowerCase().includes(query) ||
         o.id.toLowerCase().includes(query)
@@ -476,7 +481,7 @@ export default function OrdersManagement() {
                             </Badge>
                           )}
                         </div>
-                        <h3 className="font-semibold mb-1">{order.material?.title || 'Unknown Material'}</h3>
+                        <h3 className="font-semibold mb-1">{order.material?.title || order.product?.title || 'Unknown Product'}</h3>
                         {order.shipping_address && (
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex items-center gap-1">
@@ -534,7 +539,7 @@ export default function OrdersManagement() {
                 {/* Product */}
                 <div>
                   <div className="text-sm font-medium mb-2">Product</div>
-                  <div className="font-semibold">{selectedOrder.material?.title}</div>
+                  <div className="font-semibold">{selectedOrder.material?.title || selectedOrder.product?.title || 'Product'}</div>
                   <div className="text-sm text-muted-foreground flex items-center">
                     Amount: <IndianRupee className="h-3 w-3 ml-1" />{selectedOrder.amount}
                   </div>

@@ -65,8 +65,8 @@ export default async function handler(req, res) {
   try {
     // Create Order
     if (path.includes('/api/create-order') && method === 'POST') {
-      const { amount, materialId, userId } = req.body;
-      if (!amount || !materialId || !userId) {
+      const { amount, materialId, productId, userId } = req.body;
+      if (!amount || (!materialId && !productId) || !userId) {
         return res.status(400).json({ error: 'Missing fields' });
       }
       const rp = getRazorpay();
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       const order = await rp.orders.create({
         amount: Math.round(amount * 100),
         currency: 'INR',
-        receipt: `mat_${Date.now()}`,
+        receipt: `order_${Date.now()}`,
       });
       return res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
     }
@@ -281,8 +281,8 @@ export default async function handler(req, res) {
       const { orderId } = req.body;
       const { url, key } = getSupabaseConfig();
       
-      // Fetch order details
-      const orderRes = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}&select=*,material:study_materials(title,hard_copy_price)`, {
+      // Fetch order details with both material and product relations
+      const orderRes = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}&select=*,material:study_materials(title),product:hard_copy_products(title,weight_kg,dimensions_cm)`, {
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
       });
       const orders = await orderRes.json();
@@ -291,6 +291,12 @@ export default async function handler(req, res) {
       const order = orders[0];
       const address = order.shipping_address;
       if (!address) return res.status(400).json({ error: 'No shipping address' });
+
+      // Get product details (from either material or hard_copy_product)
+      const productTitle = order.product?.title || order.material?.title || 'Study Material';
+      const productId = order.product_id || order.material_id;
+      const weight = order.product?.weight_kg || 0.5;
+      const dims = order.product?.dimensions_cm?.split('x') || ['25', '20', '3'];
 
       const shiprocketOrder = await shiprocketApi('orders/create/adhoc', 'POST', {
         order_id: orderId.slice(0, 20),
@@ -308,8 +314,8 @@ export default async function handler(req, res) {
         billing_phone: address.phone,
         shipping_is_billing: true,
         order_items: [{
-          name: order.material?.title || 'Study Material',
-          sku: `MAT-${order.material_id?.slice(0, 8)}`,
+          name: productTitle,
+          sku: `PROD-${productId?.slice(0, 8) || 'UNKNOWN'}`,
           units: 1,
           selling_price: order.amount,
           discount: 0,
@@ -317,7 +323,10 @@ export default async function handler(req, res) {
         }],
         payment_method: 'Prepaid',
         sub_total: order.amount,
-        length: 25, breadth: 20, height: 3, weight: 0.5,
+        length: parseInt(dims[0]) || 25, 
+        breadth: parseInt(dims[1]) || 20, 
+        height: parseInt(dims[2]) || 3, 
+        weight: weight,
       });
 
       // Update order with Shiprocket IDs

@@ -92,18 +92,19 @@ export async function registerRoutes(
   // Create Razorpay Order
   app.post('/api/create-order', async (req: Request, res: Response) => {
     try {
-      const { amount, materialId, userId, deliveryType, shippingAddress } = req.body;
+      const { amount, materialId, productId, userId, deliveryType, shippingAddress } = req.body;
 
-      if (!amount || !materialId || !userId) {
+      if (!amount || (!materialId && !productId) || !userId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       const options = {
         amount: amount * 100, // Razorpay expects amount in paise
         currency: 'INR',
-        receipt: `material_${materialId}_${Date.now()}`,
+        receipt: `order_${Date.now()}`,
         notes: {
-          materialId,
+          materialId: materialId || null,
+          productId: productId || null,
           userId,
           deliveryType: deliveryType || 'digital',
         },
@@ -362,9 +363,9 @@ export async function registerRoutes(
       const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
       const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-      // Fetch order details
+      // Fetch order details with both material and product relations
       const orderRes = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?id=eq.${orderId}&select=*,material:study_materials(title,hard_copy_price)`,
+        `${supabaseUrl}/rest/v1/purchases?id=eq.${orderId}&select=*,material:study_materials(title),product:hard_copy_products(title,weight_kg,dimensions_cm)`,
         {
           headers: {
             'apikey': supabaseKey!,
@@ -385,6 +386,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'No shipping address found' });
       }
 
+      // Get product details (from either material or hard_copy_product)
+      const productTitle = order.product?.title || order.material?.title || 'Study Material';
+      const productId = order.product_id || order.material_id;
+      const weight = order.product?.weight_kg || 0.5;
+      const dims = order.product?.dimensions_cm?.split('x') || ['25', '20', '3'];
+
       // Create Shiprocket order
       const shiprocketOrder = await shiprocketApi('orders/create/adhoc', 'POST', {
         order_id: orderId.slice(0, 20), // Shiprocket has 20 char limit
@@ -403,8 +410,8 @@ export async function registerRoutes(
         shipping_is_billing: true,
         order_items: [
           {
-            name: order.material?.title || 'Study Material',
-            sku: `MAT-${order.material_id?.slice(0, 8)}`,
+            name: productTitle,
+            sku: `PROD-${productId?.slice(0, 8) || 'UNKNOWN'}`,
             units: 1,
             selling_price: order.amount,
             discount: 0,
@@ -413,10 +420,10 @@ export async function registerRoutes(
         ],
         payment_method: 'Prepaid',
         sub_total: order.amount,
-        length: 25, // cm - adjust based on your book size
-        breadth: 20,
-        height: 3,
-        weight: 0.5, // kg - adjust based on your book weight
+        length: parseInt(dims[0]) || 25,
+        breadth: parseInt(dims[1]) || 20,
+        height: parseInt(dims[2]) || 3,
+        weight: weight,
       });
 
       // Update order with Shiprocket order ID
