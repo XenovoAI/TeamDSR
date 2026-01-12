@@ -28,7 +28,8 @@ ALTER TABLE purchases ADD COLUMN IF NOT EXISTS product_id UUID;
 ALTER TABLE purchases ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) DEFAULT 'digital';
 ALTER TABLE purchases ADD COLUMN IF NOT EXISTS guest_email VARCHAR(255);
 
--- 3. Make user_id nullable for guest checkout
+-- 3. IMPORTANT: Make material_id and user_id nullable for hard copy and guest purchases
+ALTER TABLE purchases ALTER COLUMN material_id DROP NOT NULL;
 ALTER TABLE purchases ALTER COLUMN user_id DROP NOT NULL;
 
 -- 4. Enable RLS
