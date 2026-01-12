@@ -6,6 +6,7 @@ import { ArrowLeft, Package, Share2, Loader2, X, Tag, Truck, ShoppingCart, Check
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 
 declare global { interface Window { Razorpay: any; } }
@@ -51,6 +52,7 @@ export default function HardCopyDetail() {
     name: '', phone: '', email: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
   });
   const { user } = useAuth();
+  const { addItem, isInCart } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -474,9 +476,21 @@ export default function HardCopyDetail() {
 
             {/* Actions - Desktop */}
             <div className="hidden md:block space-y-3">
-              <Button onClick={() => setShowAddressModal(true)} className="w-full h-14 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg rounded-xl">
-                <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now - ₹{appliedCoupon ? finalPrice : totalPrice}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowAddressModal(true)} className="flex-1 h-14 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg rounded-xl">
+                  Buy Now - ₹{appliedCoupon ? finalPrice : totalPrice}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    addItem({ id: product.id, type: 'hardcopy', title: product.title, price: totalPrice, thumbnail_url: product.thumbnail_url });
+                    toast({ title: "Added to Cart!", description: product.title });
+                  }}
+                  variant="outline" 
+                  className={`h-14 w-14 rounded-xl ${isInCart(product.id, 'hardcopy') ? 'bg-green-50 border-green-500 text-green-600' : 'border-[#0B9B9B] text-[#0B9B9B]'}`}
+                >
+                  {isInCart(product.id, 'hardcopy') ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+                </Button>
+              </div>
               <p className="text-xs text-center text-gray-500">🔒 No login required • Secure payment via Razorpay</p>
               <Button onClick={handleShare} variant="outline" className="w-full h-11 rounded-xl">
                 <Share2 className="mr-2 h-4 w-4" /> Share Product
@@ -494,7 +508,17 @@ export default function HardCopyDetail() {
             <p className="text-xs text-gray-500">incl. shipping</p>
           </div>
           <Button onClick={() => setShowAddressModal(true)} className="flex-1 h-12 bg-[#0B9B9B] font-bold rounded-xl">
-            <ShoppingCart className="mr-2 h-4 w-4" /> Buy Now
+            Buy Now
+          </Button>
+          <Button 
+            onClick={() => {
+              addItem({ id: product.id, type: 'hardcopy', title: product.title, price: totalPrice, thumbnail_url: product.thumbnail_url });
+              toast({ title: "Added to Cart!", description: product.title });
+            }}
+            variant="outline" 
+            className={`h-12 w-12 rounded-xl ${isInCart(product.id, 'hardcopy') ? 'bg-green-50 border-green-500 text-green-600' : 'border-[#0B9B9B] text-[#0B9B9B]'}`}
+          >
+            {isInCart(product.id, 'hardcopy') ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
           </Button>
         </div>
       </div>

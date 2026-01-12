@@ -463,12 +463,20 @@ export async function registerRoutes(
     try {
       const { pickup_pincode, delivery_pincode, weight, cod } = req.body;
       
-      const couriers = await shiprocketApi('courier/serviceability/', 'POST', {
-        pickup_postcode: pickup_pincode || process.env.SHIPROCKET_PICKUP_PINCODE,
-        delivery_postcode: delivery_pincode,
-        weight: weight || 0.5,
-        cod: cod ? 1 : 0,
+      const pickupCode = pickup_pincode || process.env.SHIPROCKET_PICKUP_PINCODE || '302019';
+      const deliveryCode = delivery_pincode;
+      const shipWeight = weight || 0.5;
+      const isCod = cod ? 1 : 0;
+      
+      // Shiprocket serviceability API uses GET with query params, not POST
+      const queryParams = new URLSearchParams({
+        pickup_postcode: pickupCode,
+        delivery_postcode: deliveryCode,
+        weight: shipWeight.toString(),
+        cod: isCod.toString(),
       });
+      
+      const couriers = await shiprocketApi(`courier/serviceability/?${queryParams.toString()}`, 'GET');
 
       res.json(couriers);
     } catch (error: any) {
@@ -977,6 +985,125 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error('Shiprocket cancel error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ CART CHECKOUT ============
+
+  // Create cart order
+  app.post('/api/create-cart-order', async (req: Request, res: Response) => {
+    try {
+      const { items, amount, userId, guestEmail } = req.body;
+
+      if (!items || items.length === 0 || !amount) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const options = {
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        receipt: `cart_${Date.now()}`,
+        notes: {
+          itemCount: items.length,
+          userId: userId || 'guest',
+          email: guestEmail || '',
+        },
+      };
+
+      const order = await getRazorpay().orders.create(options);
+      
+      res.json({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: process.env.RAZORPAY_KEY_ID,
+      });
+    } catch (error: any) {
+      console.error('Error creating cart order:', error);
+      res.status(500).json({ error: error.message || 'Failed to create order' });
+    }
+  });
+
+  // Verify cart payment and create purchases
+  app.post('/api/verify-cart-payment', async (req: Request, res: Response) => {
+    try {
+      const { 
+        razorpay_order_id, razorpay_payment_id, razorpay_signature,
+        items, userId, guestEmail, amount, originalAmount, discountAmount,
+        couponId, couponCode, hasPhysical, shippingAddress
+      } = req.body;
+
+      // Verify signature
+      const body = razorpay_order_id + '|' + razorpay_payment_id;
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+        .update(body.toString())
+        .digest('hex');
+
+      if (expectedSignature !== razorpay_signature) {
+        return res.status(400).json({ success: false, message: 'Payment verification failed' });
+      }
+
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      // Create purchase record for each item
+      for (const item of items) {
+        const purchaseData: any = {
+          user_id: userId || null,
+          guest_email: guestEmail || null,
+          material_id: item.type === 'digital' ? item.id : null,
+          product_id: item.type === 'hardcopy' ? item.id : null,
+          product_type: item.type === 'digital' ? 'digital' : 'hardcopy',
+          amount: item.price * item.quantity,
+          original_amount: item.price * item.quantity,
+          discount_amount: 0,
+          coupon_id: couponId || null,
+          coupon_code: couponCode || null,
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+          status: 'completed',
+          delivery_type: item.type === 'hardcopy' ? 'physical' : 'digital',
+        };
+
+        if (item.type === 'hardcopy' && shippingAddress) {
+          purchaseData.shipping_address = shippingAddress;
+          purchaseData.delivery_status = 'pending';
+        }
+
+        await fetch(`${supabaseUrl}/rest/v1/purchases`, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(purchaseData),
+        });
+      }
+
+      // Update coupon usage if used
+      if (couponId && userId) {
+        await fetch(`${supabaseUrl}/rest/v1/coupon_usage`, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            coupon_id: couponId,
+            user_id: userId,
+            discount_applied: discountAmount || 0,
+          }),
+        });
+      }
+
+      res.json({ success: true, message: 'Payment verified and purchases created' });
+    } catch (error: any) {
+      console.error('Error verifying cart payment:', error);
+      res.status(500).json({ error: error.message || 'Failed to verify payment' });
     }
   });
 

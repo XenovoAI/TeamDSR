@@ -348,12 +348,20 @@ export default async function handler(req, res) {
     // Get Couriers
     if (path.includes('/api/shiprocket/couriers') && method === 'POST') {
       const { pickup_pincode, delivery_pincode, weight, cod } = req.body;
-      const couriers = await shiprocketApi('courier/serviceability/', 'POST', {
-        pickup_postcode: pickup_pincode || process.env.SHIPROCKET_PICKUP_PINCODE,
-        delivery_postcode: delivery_pincode,
-        weight: weight || 0.5,
-        cod: cod ? 1 : 0,
+      const pickupCode = pickup_pincode || process.env.SHIPROCKET_PICKUP_PINCODE || '302019';
+      const deliveryCode = delivery_pincode;
+      const shipWeight = weight || 0.5;
+      const isCod = cod ? 1 : 0;
+      
+      // Shiprocket serviceability API uses GET with query params, not POST
+      const queryParams = new URLSearchParams({
+        pickup_postcode: pickupCode,
+        delivery_postcode: deliveryCode,
+        weight: shipWeight.toString(),
+        cod: isCod.toString(),
       });
+      
+      const couriers = await shiprocketApi(`courier/serviceability/?${queryParams.toString()}`, 'GET');
       return res.json(couriers);
     }
 
@@ -430,6 +438,77 @@ export default async function handler(req, res) {
         body: JSON.stringify(updateData),
       });
       return res.json(await response.json());
+    }
+
+    // ============ CART CHECKOUT ============
+
+    // Create cart order
+    if (path.includes('/api/create-cart-order') && method === 'POST') {
+      const { items, amount, userId, guestEmail } = req.body;
+      if (!items || items.length === 0 || !amount) {
+        return res.status(400).json({ error: 'Missing fields' });
+      }
+      const rp = getRazorpay();
+      if (!rp) return res.status(500).json({ error: 'Razorpay not configured' });
+      
+      const order = await rp.orders.create({
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        receipt: `cart_${Date.now()}`,
+        notes: { itemCount: items.length, userId: userId || 'guest', email: guestEmail || '' }
+      });
+      return res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
+    }
+
+    // Verify cart payment
+    if (path.includes('/api/verify-cart-payment') && method === 'POST') {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, items, userId, guestEmail, amount, originalAmount, discountAmount, couponId, couponCode, hasPhysical, shippingAddress } = req.body;
+      
+      const body = razorpay_order_id + '|' + razorpay_payment_id;
+      const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '').update(body).digest('hex');
+      if (expectedSignature !== razorpay_signature) {
+        return res.status(400).json({ success: false, message: 'Verification failed' });
+      }
+
+      const { url, key } = getSupabaseConfig();
+
+      // Create purchase for each item
+      for (const item of items) {
+        const purchaseData = {
+          user_id: userId || null,
+          guest_email: guestEmail || null,
+          material_id: item.type === 'digital' ? item.id : null,
+          product_id: item.type === 'hardcopy' ? item.id : null,
+          product_type: item.type === 'digital' ? 'digital' : 'hardcopy',
+          amount: item.price * item.quantity,
+          original_amount: item.price * item.quantity,
+          discount_amount: 0,
+          coupon_id: couponId || null,
+          coupon_code: couponCode || null,
+          razorpay_order_id, razorpay_payment_id, razorpay_signature,
+          status: 'completed',
+          delivery_type: item.type === 'hardcopy' ? 'physical' : 'digital',
+        };
+        if (item.type === 'hardcopy' && shippingAddress) {
+          purchaseData.shipping_address = shippingAddress;
+          purchaseData.delivery_status = 'pending';
+        }
+        await fetch(`${url}/rest/v1/purchases`, {
+          method: 'POST',
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(purchaseData),
+        });
+      }
+
+      if (couponId && userId) {
+        await fetch(`${url}/rest/v1/coupon_usage`, {
+          method: 'POST',
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coupon_id: couponId, user_id: userId, discount_applied: discountAmount || 0 }),
+        });
+      }
+
+      return res.json({ success: true });
     }
 
     // Not found

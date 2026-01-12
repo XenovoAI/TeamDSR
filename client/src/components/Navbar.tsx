@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { Menu, X, LogOut, User, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { user, userProfile, signOut: handleSignOut } = useAuth();
+  const { totalItems } = useCart();
 
   const isActive = (path: string) => location === path;
   const linkClass = (path: string) => 
@@ -51,6 +53,17 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-3">
+          {/* Cart Icon */}
+          <Link href="/cart">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <ShoppingCart className="h-5 w-5 text-gray-700" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#0B9B9B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Button>
+          </Link>
           <a 
             href="https://play.google.com/store/apps/details?id=com.neetpeak" 
             target="_blank" 
@@ -125,6 +138,10 @@ export default function Navbar() {
           <Link href="/materials" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>Materials</Link>
           <Link href="/mentorship" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>Mentorship</Link>
           <Link href="/about" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => setIsOpen(false)}>About Us</Link>
+          <Link href="/cart" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-between" onClick={() => setIsOpen(false)}>
+            <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Cart</span>
+            {totalItems > 0 && <span className="bg-[#0B9B9B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">{totalItems}</span>}
+          </Link>
           <div className="h-px bg-gray-200 my-2" />
           <a 
             href="https://play.google.com/store/apps/details?id=com.neetpeak" 

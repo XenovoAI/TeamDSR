@@ -3,8 +3,6 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,12 +71,6 @@ export default function OrdersManagement() {
   const [loadingCouriers, setLoadingCouriers] = useState(false);
   const { toast } = useToast();
 
-  const [updateData, setUpdateData] = useState({
-    delivery_status: "",
-    tracking_number: "",
-    admin_notes: ""
-  });
-
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -138,58 +130,7 @@ export default function OrdersManagement() {
     setFilteredOrders(filtered);
   };
 
-  const handleUpdateOrder = async () => {
-    if (!selectedOrder) return;
 
-    setUpdating(true);
-    try {
-      const updatePayload: any = {
-        delivery_status: updateData.delivery_status,
-        tracking_number: updateData.tracking_number || null,
-        admin_notes: updateData.admin_notes || null,
-      };
-
-      if (updateData.delivery_status === 'shipped' && !selectedOrder.shipped_at) {
-        updatePayload.shipped_at = new Date().toISOString();
-      }
-      if (updateData.delivery_status === 'delivered' && !selectedOrder.delivered_at) {
-        updatePayload.delivered_at = new Date().toISOString();
-      }
-
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?id=eq.${selectedOrder.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-          },
-          body: JSON.stringify(updatePayload),
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to update order');
-
-      toast({
-        title: "Success",
-        description: "Order updated successfully"
-      });
-
-      setIsDialogOpen(false);
-      fetchOrders();
-    } catch (error) {
-      console.error('Error updating order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update order",
-        variant: "destructive"
-      });
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   // Shiprocket: Create order
   const handleCreateShipment = async () => {
@@ -331,17 +272,12 @@ export default function OrdersManagement() {
 
   const openOrderDialog = (order: Order) => {
     setSelectedOrder(order);
-    setUpdateData({
-      delivery_status: order.delivery_status,
-      tracking_number: order.tracking_number || "",
-      admin_notes: order.admin_notes || ""
-    });
     setCouriers([]);
     setSelectedCourier("");
     setIsDialogOpen(true);
     
     // If order has shipment, fetch couriers
-    if (order.shiprocket_shipment_id && order.delivery_status === 'processing') {
+    if (order.shiprocket_shipment_id && (order.delivery_status === 'processing' || order.delivery_status === 'pending')) {
       fetchCouriers();
     }
   };
@@ -593,10 +529,10 @@ export default function OrdersManagement() {
                     </Button>
                   )}
 
-                  {selectedOrder.shiprocket_shipment_id && selectedOrder.delivery_status === 'processing' && (
+                  {selectedOrder.shiprocket_shipment_id && (selectedOrder.delivery_status === 'processing' || selectedOrder.delivery_status === 'pending') && (
                     <div className="space-y-3">
-                      <div className="text-xs text-muted-foreground">
-                        Shipment ID: {selectedOrder.shiprocket_shipment_id}
+                      <div className="text-xs text-muted-foreground bg-green-50 p-2 rounded">
+                        ✅ Shipment ID: {selectedOrder.shiprocket_shipment_id}
                       </div>
                       
                       {loadingCouriers ? (
@@ -633,7 +569,8 @@ export default function OrdersManagement() {
                           </Button>
                         </>
                       ) : (
-                        <Button onClick={fetchCouriers} variant="outline" className="w-full">
+                        <Button onClick={fetchCouriers} className="w-full bg-green-600 hover:bg-green-700">
+                          <Truck className="h-4 w-4 mr-2" />
                           Load Available Couriers
                         </Button>
                       )}
@@ -664,61 +601,28 @@ export default function OrdersManagement() {
                       </a>
                     </div>
                   )}
-                </div>
 
-                {/* Manual Update Form */}
-                <div className="border-t pt-4 space-y-4">
-                  <div className="text-sm font-medium">Manual Update</div>
-                  
-                  <div className="space-y-2">
-                    <Label>Delivery Status</Label>
-                    <Select
-                      value={updateData.delivery_status}
-                      onValueChange={(value) => setUpdateData({ ...updateData, delivery_status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="shipped">Shipped</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {selectedOrder.delivery_status === 'shipped' && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg text-center">
+                      <div className="text-sm text-blue-800">
+                        📦 Order shipped! Track and manage on{' '}
+                        <a 
+                          href="https://app.shiprocket.in/orders"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium underline"
+                        >
+                          Shiprocket Dashboard
+                        </a>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label>Tracking Number (Manual)</Label>
-                    <Input
-                      value={updateData.tracking_number}
-                      onChange={(e) => setUpdateData({ ...updateData, tracking_number: e.target.value })}
-                      placeholder="e.g., AWB123456"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Admin Notes</Label>
-                    <Textarea
-                      value={updateData.admin_notes}
-                      onChange={(e) => setUpdateData({ ...updateData, admin_notes: e.target.value })}
-                      placeholder="Internal notes..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <Button
-                    onClick={handleUpdateOrder}
-                    disabled={updating}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {updating ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Save Manual Changes
-                  </Button>
+                  {selectedOrder.delivery_status === 'delivered' && (
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg text-center">
+                      <div className="text-sm text-green-800">✅ Order delivered successfully!</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Timeline */}

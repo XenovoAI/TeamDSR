@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, Tag, BookOpen, Percent, Gift } from "lucide-react";
+import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, Tag, BookOpen, Percent, Gift, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 
 declare global { interface Window { Razorpay: any; } }
@@ -43,6 +44,7 @@ export default function MaterialDetail() {
     name: '', phone: '', email: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
   });
   const { user } = useAuth();
+  const { addItem, isInCart } = useCart();
   const { toast } = useToast();
 
 
@@ -523,9 +525,22 @@ export default function MaterialDetail() {
                 <Download className="mr-1 h-4 w-4" /> Download
               </Button>
             ) : (
-              <Button onClick={() => openCheckout('digital')} disabled={processingPayment} className="w-full h-10 bg-[#0B9B9B] font-semibold text-sm">
-                {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buy Now'}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => openCheckout('digital')} disabled={processingPayment} className="flex-1 h-10 bg-[#0B9B9B] font-semibold text-sm">
+                  {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buy Now'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    addItem({ id: material.id, type: 'digital', title: material.title, price: material.price || 0, thumbnail_url: material.thumbnail_url });
+                    toast({ title: "Added to Cart!", description: material.title });
+                  }}
+                  variant="outline" 
+                  size="icon" 
+                  className={`h-10 w-10 ${isInCart(material.id, 'digital') ? 'bg-green-50 border-green-500 text-green-600' : 'border-[#0B9B9B] text-[#0B9B9B]'}`}
+                >
+                  {isInCart(material.id, 'digital') ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                </Button>
+              </div>
             )}
           </div>
           {!canAccess && material.has_hard_copy && (
