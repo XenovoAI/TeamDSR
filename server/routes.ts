@@ -36,8 +36,10 @@ const getShiprocketToken = async (): Promise<string> => {
   const email = process.env.SHIPROCKET_EMAIL;
   const password = process.env.SHIPROCKET_PASSWORD;
 
+  console.log('Shiprocket auth attempt:', { email, hasPassword: !!password });
+
   if (!email || !password) {
-    throw new Error('Shiprocket credentials not configured');
+    throw new Error('Shiprocket credentials not configured. Set SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD in .env');
   }
 
   const response = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
@@ -46,11 +48,14 @@ const getShiprocketToken = async (): Promise<string> => {
     body: JSON.stringify({ email, password }),
   });
 
+  const responseText = await response.text();
+  console.log('Shiprocket auth response:', response.status, responseText);
+
   if (!response.ok) {
-    throw new Error('Failed to authenticate with Shiprocket');
+    throw new Error(`Failed to authenticate with Shiprocket: ${responseText}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(responseText);
   shiprocketToken = data.token;
   // Token valid for 10 days, refresh after 9 days
   shiprocketTokenExpiry = Date.now() + (9 * 24 * 60 * 60 * 1000);
