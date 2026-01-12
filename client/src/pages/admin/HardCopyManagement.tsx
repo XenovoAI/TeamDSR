@@ -173,14 +173,20 @@ export default function HardCopyManagement() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this product?')) return;
     try {
-      await fetch(`${supabaseUrl}/rest/v1/hard_copy_products?id=eq.${id}`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/hard_copy_products?id=eq.${id}`, {
         method: 'DELETE',
         headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
       });
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+      // Update local state immediately
+      setProducts(prev => prev.filter(p => p.id !== id));
+      setFilteredProducts(prev => prev.filter(p => p.id !== id));
       toast({ title: "Deleted!" });
-      fetchData();
     } catch (error) {
-      toast({ title: "Error", variant: "destructive" });
+      console.error('Delete error:', error);
+      toast({ title: "Error deleting product", variant: "destructive" });
     }
   };
 
