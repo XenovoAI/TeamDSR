@@ -13,6 +13,42 @@ const getRazorpay = () => {
   return new Razorpay({ key_id: keyId, key_secret: keySecret });
 };
 
+// Shiprocket Auth
+const getShiprocketToken = async () => {
+  const email = process.env.SHIPROCKET_EMAIL;
+  const password = process.env.SHIPROCKET_PASSWORD;
+  if (!email || !password) throw new Error('Shiprocket credentials not configured');
+  
+  const response = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Shiprocket auth failed: ${err}`);
+  }
+  const data = await response.json();
+  return data.token;
+};
+
+const shiprocketApi = async (endpoint, method = 'GET', body = null) => {
+  const token = await getShiprocketToken();
+  const response = await fetch(`https://apiv2.shiprocket.in/v1/external/${endpoint}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Shiprocket API error: ${err}`);
+  }
+  return response.json();
+};
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -224,6 +260,153 @@ export default async function handler(req, res) {
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
       });
       return res.json({ success: true });
+    }
+
+    // ============ SHIPROCKET ENDPOINTS ============
+
+    // Create Shiprocket Order
+    if (path.includes('/api/shiprocket/create-order') && method === 'POST') {
+      const { orderId } = req.body;
+      const { url, key } = getSupabaseConfig();
+      
+      // Fetch order details
+      const orderRes = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}&select=*,material:study_materials(title,hard_copy_price)`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      });
+      const orders = await orderRes.json();
+      if (!orders?.length) return res.status(404).json({ error: 'Order not found' });
+      
+      const order = orders[0];
+      const address = order.shipping_address;
+      if (!address) return res.status(400).json({ error: 'No shipping address' });
+
+      const shiprocketOrder = await shiprocketApi('orders/create/adhoc', 'POST', {
+        order_id: orderId.slice(0, 20),
+        order_date: new Date().toISOString().split('T')[0],
+        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary',
+        billing_customer_name: address.name,
+        billing_last_name: '',
+        billing_address: address.address_line1,
+        billing_address_2: address.address_line2 || '',
+        billing_city: address.city,
+        billing_pincode: address.pincode,
+        billing_state: address.state,
+        billing_country: 'India',
+        billing_email: 'customer@neetpeak.com',
+        billing_phone: address.phone,
+        shipping_is_billing: true,
+        order_items: [{
+          name: order.material?.title || 'Study Material',
+          sku: `MAT-${order.material_id?.slice(0, 8)}`,
+          units: 1,
+          selling_price: order.amount,
+          discount: 0,
+          tax: 0,
+        }],
+        payment_method: 'Prepaid',
+        sub_total: order.amount,
+        length: 25, breadth: 20, height: 3, weight: 0.5,
+      });
+
+      // Update order with Shiprocket IDs
+      await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shiprocket_order_id: shiprocketOrder.order_id,
+          shiprocket_shipment_id: shiprocketOrder.shipment_id,
+          delivery_status: 'processing',
+        }),
+      });
+
+      return res.json({ success: true, shiprocket_order_id: shiprocketOrder.order_id, shipment_id: shiprocketOrder.shipment_id });
+    }
+
+    // Get Couriers
+    if (path.includes('/api/shiprocket/couriers') && method === 'POST') {
+      const { pickup_pincode, delivery_pincode, weight, cod } = req.body;
+      const couriers = await shiprocketApi('courier/serviceability/', 'POST', {
+        pickup_postcode: pickup_pincode || process.env.SHIPROCKET_PICKUP_PINCODE,
+        delivery_postcode: delivery_pincode,
+        weight: weight || 0.5,
+        cod: cod ? 1 : 0,
+      });
+      return res.json(couriers);
+    }
+
+    // Ship Order (Generate AWB)
+    if (path.includes('/api/shiprocket/ship') && method === 'POST') {
+      const { orderId, courier_id } = req.body;
+      const { url, key } = getSupabaseConfig();
+
+      const orderRes = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}&select=shiprocket_shipment_id`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      });
+      const orders = await orderRes.json();
+      if (!orders?.[0]?.shiprocket_shipment_id) return res.status(400).json({ error: 'Shipment not created' });
+
+      const shipment_id = orders[0].shiprocket_shipment_id;
+      const awbResponse = await shiprocketApi('courier/assign/awb', 'POST', { shipment_id, courier_id });
+      const pickupResponse = await shiprocketApi('courier/generate/pickup', 'POST', { shipment_id: [shipment_id] });
+
+      await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tracking_number: awbResponse.response?.data?.awb_code,
+          delivery_status: 'shipped',
+          shipped_at: new Date().toISOString(),
+        }),
+      });
+
+      return res.json({ success: true, awb: awbResponse.response?.data?.awb_code, pickup: pickupResponse });
+    }
+
+    // Track Shipment
+    if (path.includes('/api/shiprocket/track/') && method === 'GET') {
+      const awb = path.split('/').pop();
+      const tracking = await shiprocketApi(`courier/track/awb/${awb}`);
+      return res.json(tracking);
+    }
+
+    // Cancel Shipment
+    if (path.includes('/api/shiprocket/cancel') && method === 'POST') {
+      const { orderId } = req.body;
+      const { url, key } = getSupabaseConfig();
+
+      const orderRes = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}&select=shiprocket_order_id`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      });
+      const orders = await orderRes.json();
+      if (!orders?.[0]?.shiprocket_order_id) return res.status(400).json({ error: 'No Shiprocket order' });
+
+      const cancelResponse = await shiprocketApi('orders/cancel', 'POST', { ids: [orders[0].shiprocket_order_id] });
+
+      await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_status: 'cancelled' }),
+      });
+
+      return res.json({ success: true, response: cancelResponse });
+    }
+
+    // Update Order Status (Admin)
+    if (path.match(/\/api\/orders\/[^/]+$/) && method === 'PATCH') {
+      const orderId = path.split('/').pop();
+      const { delivery_status, tracking_number, admin_notes } = req.body;
+      const { url, key } = getSupabaseConfig();
+
+      const updateData = { delivery_status, tracking_number, admin_notes, updated_at: new Date().toISOString() };
+      if (delivery_status === 'shipped') updateData.shipped_at = new Date().toISOString();
+      if (delivery_status === 'delivered') updateData.delivered_at = new Date().toISOString();
+
+      const response = await fetch(`${url}/rest/v1/purchases?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify(updateData),
+      });
+      return res.json(await response.json());
     }
 
     // Not found
