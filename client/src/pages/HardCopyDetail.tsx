@@ -338,13 +338,14 @@ export default function HardCopyDetail() {
               <Button onClick={handlePurchase} disabled={processingPayment} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg">
                 {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : `Pay ₹${finalPrice}`}
               </Button>
+              <p className="text-xs text-center text-gray-500 mt-2">🔒 Secure payment via Razorpay</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="pt-14 md:pt-16 px-4 py-2 border-b">
+      <div className="pt-14 md:pt-16 px-4 py-2 border-b bg-white sticky top-0 z-30">
         <div className="max-w-5xl mx-auto">
           <Link href="/materials">
             <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-[#0B9B9B]">
@@ -355,90 +356,130 @@ export default function HardCopyDetail() {
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-4 md:py-8">
-        <div className="md:flex md:gap-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+        <div className="md:flex md:gap-10">
           {/* Image */}
-          <div className="md:w-[45%] md:flex-shrink-0">
-            <div className="relative aspect-[4/5] md:aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden shadow-lg">
+          <div className="md:w-[40%] md:flex-shrink-0">
+            <div className="relative aspect-square md:aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden shadow-lg border">
               {product.thumbnail_url ? (
                 <img src={product.thumbnail_url} alt={product.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center"><Package className="h-20 w-20 text-gray-300" /></div>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                  <Package className="h-20 w-20 text-blue-200" />
+                </div>
               )}
-              <div className="absolute top-3 left-3 flex gap-2">
-                {product.subject?.name && <Badge className="bg-blue-500 text-white">{product.subject.name}</Badge>}
-                <Badge className="bg-purple-500 text-white"><Truck className="h-3 w-3 mr-1" />Ships in 2-3 days</Badge>
+              {/* Badges on image */}
+              <div className="absolute top-3 left-3 flex flex-col gap-2">
+                {product.subject?.name && (
+                  <Badge className="bg-blue-600 text-white shadow-md">{product.subject.name}</Badge>
+                )}
+              </div>
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-purple-600 text-white shadow-md">
+                  <Truck className="h-3 w-3 mr-1" />2-3 Days Delivery
+                </Badge>
               </div>
               {product.stock_quantity < 10 && (
-                <Badge className="absolute top-3 right-3 bg-red-500">Only {product.stock_quantity} left!</Badge>
+                <Badge className="absolute bottom-3 right-3 bg-red-500 text-white shadow-md">
+                  Only {product.stock_quantity} left!
+                </Badge>
               )}
             </div>
           </div>
 
           {/* Info */}
-          <div className="mt-4 md:mt-0 md:flex-1">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{product.title}</h1>
-            {product.description && <p className="mt-2 text-gray-600">{product.description}</p>}
-
-            {/* Price */}
-            <div className="mt-4 flex items-center gap-3">
-              <span className="text-3xl font-bold text-[#1B5E5E]">₹{appliedCoupon ? finalPrice : totalPrice}</span>
-              {product.original_price && product.original_price > product.price && (
-                <span className="text-lg text-gray-400 line-through">₹{product.original_price + product.shipping_cost}</span>
-              )}
-              <Badge className="bg-green-500">Includes Shipping</Badge>
+          <div className="mt-6 md:mt-0 md:flex-1 space-y-5">
+            {/* Title */}
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">{product.title}</h1>
             </div>
 
-            <p className="text-sm text-gray-500 mt-1">Product ₹{product.price} + Shipping ₹{product.shipping_cost}</p>
+            {/* Description - Formatted */}
+            {product.description && (
+              <div className="bg-gray-50 rounded-xl p-4 border">
+                <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-[#0B9B9B]" /> Product Details
+                </h3>
+                <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                  {product.description.split(/[✅🎯]/g).map((part, i) => {
+                    if (!part.trim()) return null;
+                    return (
+                      <div key={i} className="flex items-start gap-2 mb-2">
+                        <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{part.trim()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-            {/* Coupon - Always visible */}
-            <div className="mt-4 p-3 bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/10 rounded-xl border border-[#0B9B9B]/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Gift className="h-4 w-4 text-[#0B9B9B]" />
-                <span className="text-sm font-semibold text-[#1B5E5E]">Have a Coupon Code?</span>
+            {/* Price Card */}
+            <div className="bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/10 rounded-xl p-4 border border-[#0B9B9B]/20">
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="text-3xl font-bold text-[#1B5E5E]">₹{appliedCoupon ? finalPrice : totalPrice}</span>
+                {product.original_price && product.original_price > product.price && (
+                  <span className="text-lg text-gray-400 line-through">₹{product.original_price + product.shipping_cost}</span>
+                )}
+                <Badge className="bg-green-500 text-white">Includes Shipping</Badge>
+              </div>
+              <p className="text-sm text-gray-500">Product ₹{product.price} + Shipping ₹{product.shipping_cost}</p>
+            </div>
+
+            {/* Coupon Section */}
+            <div className="bg-white rounded-xl p-4 border-2 border-dashed border-[#0B9B9B]/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Gift className="h-5 w-5 text-[#0B9B9B]" />
+                <span className="font-semibold text-[#1B5E5E]">Have a Coupon Code?</span>
               </div>
               {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-green-100 rounded-lg p-2">
-                  <span className="text-sm font-bold text-green-700 flex items-center gap-1">
-                    <Check className="h-4 w-4" /> {appliedCoupon.code} - ₹{discount} off!
-                  </span>
-                  <button onClick={removeCoupon} className="text-xs text-red-500 font-medium">Remove</button>
+                <div className="flex items-center justify-between bg-green-100 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-green-700">{appliedCoupon.code}</span>
+                      <p className="text-xs text-green-600">You save ₹{discount}!</p>
+                    </div>
+                  </div>
+                  <button onClick={removeCoupon} className="text-sm text-red-500 hover:text-red-700 font-medium">Remove</button>
                 </div>
               ) : (
                 <div className="flex gap-2">
                   <Input 
-                    placeholder="Enter code" 
+                    placeholder="ENTER CODE" 
                     value={couponCode} 
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
-                    className="h-9 text-sm uppercase flex-1 border-dashed" 
+                    className="h-11 uppercase font-medium flex-1 text-center tracking-wider" 
                   />
-                  <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} size="sm" className="h-9 bg-[#0B9B9B]">
-                    {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Apply'}
+                  <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} className="h-11 px-6 bg-[#0B9B9B]">
+                    {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
                   </Button>
                 </div>
               )}
             </div>
 
             {/* Specs */}
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <span className="text-gray-500">Weight</span>
-                <p className="font-medium">{product.weight_kg} kg</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-xl border text-center">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Weight</span>
+                <p className="font-bold text-lg text-gray-800 mt-1">{product.weight_kg} kg</p>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <span className="text-gray-500">Dimensions</span>
-                <p className="font-medium">{product.dimensions_cm}</p>
+              <div className="bg-gray-50 p-4 rounded-xl border text-center">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Dimensions</span>
+                <p className="font-bold text-lg text-gray-800 mt-1">{product.dimensions_cm.replace(/x/g, ' × ')}</p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="mt-6 space-y-3">
-              <Button onClick={() => setShowAddressModal(true)} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold text-lg">
+            {/* Actions - Desktop */}
+            <div className="hidden md:block space-y-3">
+              <Button onClick={() => setShowAddressModal(true)} className="w-full h-14 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg rounded-xl">
                 <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now - ₹{appliedCoupon ? finalPrice : totalPrice}
               </Button>
-              <p className="text-xs text-center text-gray-500">No login required • Secure payment via Razorpay</p>
-              <Button onClick={handleShare} variant="outline" className="w-full h-11">
-                <Share2 className="mr-2 h-4 w-4" /> Share
+              <p className="text-xs text-center text-gray-500">🔒 No login required • Secure payment via Razorpay</p>
+              <Button onClick={handleShare} variant="outline" className="w-full h-11 rounded-xl">
+                <Share2 className="mr-2 h-4 w-4" /> Share Product
               </Button>
             </div>
           </div>
@@ -446,14 +487,14 @@ export default function HardCopyDetail() {
       </div>
 
       {/* Mobile Sticky */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 md:hidden z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 md:hidden z-40 shadow-lg">
         <div className="flex items-center gap-3">
-          <div>
-            <span className="text-xl font-bold">₹{appliedCoupon ? finalPrice : totalPrice}</span>
+          <div className="flex-shrink-0">
+            <span className="text-xl font-bold text-[#1B5E5E]">₹{appliedCoupon ? finalPrice : totalPrice}</span>
             <p className="text-xs text-gray-500">incl. shipping</p>
           </div>
-          <Button onClick={() => setShowAddressModal(true)} className="flex-1 h-11 bg-[#0B9B9B] font-semibold">
-            <ShoppingCart className="mr-1 h-4 w-4" /> Buy Now
+          <Button onClick={() => setShowAddressModal(true)} className="flex-1 h-12 bg-[#0B9B9B] font-bold rounded-xl">
+            <ShoppingCart className="mr-2 h-4 w-4" /> Buy Now
           </Button>
         </div>
       </div>
