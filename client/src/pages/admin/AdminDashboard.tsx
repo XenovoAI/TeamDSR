@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Atom, Beaker, Dna, Package } from "lucide-react";
+import { BookOpen, Users, Atom, Beaker, Dna, Package, Tag } from "lucide-react";
 import { getAdminStats } from "@/lib/queries";
 
 export default function AdminDashboard() {
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Admin Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl">
           <Link href="/admin/materials">
             <Card className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group h-full">
               <CardHeader className="pb-3">
@@ -157,6 +157,27 @@ export default function AdminDashboard() {
                 </p>
                 <div className="text-xs font-bold text-[#0B9B9B]">
                   {loading ? '...' : stats.totalStudents} users
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/coupons">
+            <Card className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group h-full">
+              <CardHeader className="pb-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#1B5E5E] to-[#0B9B9B] flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform">
+                  <Tag size={24} />
+                </div>
+                <CardTitle className="text-lg group-hover:text-[#0B9B9B] transition-colors">
+                  Coupons
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Create discount coupons with product-specific discounts.
+                </p>
+                <div className="text-xs font-bold text-[#0B9B9B]">
+                  Manage discounts
                 </div>
               </CardContent>
             </Card>

@@ -19,12 +19,14 @@ import TermsOfService from "@/pages/TermsOfService";
 import ShippingPolicy from "@/pages/ShippingPolicy";
 import RefundPolicy from "@/pages/RefundPolicy";
 import TrackOrder from "@/pages/TrackOrder";
+import Contact from "@/pages/Contact";
 import Profile from "@/pages/Profile";
 import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UsersManagement from "@/pages/admin/UsersManagement";
 import MaterialsManagement from "@/pages/admin/MaterialsManagement";
 import OrdersManagement from "@/pages/admin/OrdersManagement";
+import CouponsManagement from "@/pages/admin/CouponsManagement";
 
 function Router() {
   return (
@@ -39,6 +41,7 @@ function Router() {
       <Route path="/shipping" component={ShippingPolicy} />
       <Route path="/refund" component={RefundPolicy} />
       <Route path="/track" component={TrackOrder} />
+      <Route path="/contact" component={Contact} />
       
       {/* Public Routes - No login required */}
       <Route path="/materials" component={Materials} />
@@ -75,6 +78,11 @@ function Router() {
       <Route path="/admin/orders">
         <AdminRoute>
           <OrdersManagement />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/coupons">
+        <AdminRoute>
+          <CouponsManagement />
         </AdminRoute>
       </Route>
       

@@ -42,6 +42,7 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4 text-foreground">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><a href="/contact" className="hover:text-[#0B9B9B]">Contact Us</a></li>
               <li><a href="mailto:support@neetpeak.com" className="hover:text-[#0B9B9B]">support@neetpeak.com</a></li>
               <li><a href="/track" className="hover:text-[#0B9B9B]">Track Your Order</a></li>
             </ul>

@@ -128,6 +128,10 @@ export async function registerRoutes(
         materialId,
         userId,
         amount,
+        originalAmount,
+        discountAmount,
+        couponId,
+        couponCode,
         deliveryType,
         shippingAddress
       } = req.body;
@@ -150,6 +154,10 @@ export async function registerRoutes(
           user_id: userId,
           material_id: materialId,
           amount: amount,
+          original_amount: originalAmount || amount,
+          discount_amount: discountAmount || 0,
+          coupon_id: couponId || null,
+          coupon_code: couponCode || null,
           razorpay_order_id,
           razorpay_payment_id,
           razorpay_signature,
@@ -177,6 +185,46 @@ export async function registerRoutes(
         if (!response.ok) {
           const error = await response.text();
           console.error('Error saving purchase:', error);
+        }
+
+        // Update coupon usage if coupon was used
+        if (couponId) {
+          // Increment times_used
+          await fetch(`${supabaseUrl}/rest/v1/rpc/increment_coupon_usage`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ coupon_id: couponId }),
+          }).catch(() => {
+            // Fallback: direct update
+            fetch(`${supabaseUrl}/rest/v1/coupons?id=eq.${couponId}`, {
+              method: 'PATCH',
+              headers: {
+                'apikey': supabaseKey!,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ times_used: 1 }), // Will be incremented by trigger or manually
+            });
+          });
+
+          // Record coupon usage
+          await fetch(`${supabaseUrl}/rest/v1/coupon_usage`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              coupon_id: couponId,
+              user_id: userId,
+              discount_applied: discountAmount || 0,
+            }),
+          });
         }
 
         res.json({ success: true, message: 'Payment verified successfully' });
@@ -480,6 +528,379 @@ export async function registerRoutes(
       res.json(tracking);
     } catch (error: any) {
       console.error('Shiprocket tracking error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ COUPON SYSTEM ============
+
+  // Validate coupon code for a specific material
+  app.post('/api/coupons/validate', async (req: Request, res: Response) => {
+    try {
+      const { code, materialId, deliveryType, userId } = req.body;
+      
+      console.log('Validating coupon:', { code, materialId, deliveryType, userId });
+      
+      if (!code || !materialId) {
+        return res.status(400).json({ valid: false, error: 'Missing coupon code or material ID' });
+      }
+
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase credentials not configured');
+        return res.status(500).json({ valid: false, error: 'Server configuration error' });
+      }
+
+      // Fetch coupon by code
+      const couponUrl = `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(code.toUpperCase())}&select=*`;
+      console.log('Fetching coupon from:', couponUrl);
+      
+      const couponRes = await fetch(couponUrl, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
+
+      if (!couponRes.ok) {
+        const errorText = await couponRes.text();
+        console.error('Coupon fetch error:', couponRes.status, errorText);
+        return res.status(500).json({ valid: false, error: 'Failed to fetch coupon' });
+      }
+
+      const coupons = await couponRes.json();
+      console.log('Coupons found:', coupons?.length || 0);
+      
+      if (!coupons || coupons.length === 0) {
+        return res.json({ valid: false, error: 'Invalid coupon code' });
+      }
+
+      const coupon = coupons[0];
+
+      // Check if coupon is active
+      if (!coupon.is_active) {
+        return res.json({ valid: false, error: 'This coupon is no longer active' });
+      }
+
+      // Check date validity
+      const now = new Date();
+      if (coupon.start_date && new Date(coupon.start_date) > now) {
+        return res.json({ valid: false, error: 'This coupon is not yet active' });
+      }
+      if (coupon.end_date && new Date(coupon.end_date) < now) {
+        return res.json({ valid: false, error: 'This coupon has expired' });
+      }
+
+      // Check usage limit
+      if (coupon.usage_limit && coupon.times_used >= coupon.usage_limit) {
+        return res.json({ valid: false, error: 'This coupon has reached its usage limit' });
+      }
+
+      // Check if user already used this coupon (if userId provided)
+      if (userId) {
+        const usageRes = await fetch(
+          `${supabaseUrl}/rest/v1/coupon_usage?coupon_id=eq.${coupon.id}&user_id=eq.${userId}&select=id`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+          }
+        );
+        const usageData = await usageRes.json();
+        if (usageData && usageData.length > 0) {
+          return res.json({ valid: false, error: 'You have already used this coupon' });
+        }
+      }
+
+      // Check for product-specific discount
+      const productRes = await fetch(
+        `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&material_id=eq.${materialId}&select=*`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      const productDiscounts = await productRes.json();
+      
+      let discountValue = coupon.default_discount_value || 0;
+      let appliesTo = 'both';
+
+      if (productDiscounts && productDiscounts.length > 0) {
+        const productDiscount = productDiscounts[0];
+        discountValue = productDiscount.discount_value;
+        appliesTo = productDiscount.applies_to;
+      }
+
+      // Check if discount applies to the delivery type
+      if (deliveryType && appliesTo !== 'both' && appliesTo !== deliveryType) {
+        return res.json({ 
+          valid: false, 
+          error: `This coupon only applies to ${appliesTo === 'digital' ? 'digital downloads' : 'hard copies'}` 
+        });
+      }
+
+      console.log('Coupon valid:', coupon.code, 'Discount:', discountValue);
+
+      res.json({
+        valid: true,
+        coupon: {
+          id: coupon.id,
+          code: coupon.code,
+          description: coupon.description,
+          discount_type: coupon.discount_type,
+          discount_value: discountValue,
+          max_discount_amount: coupon.max_discount_amount,
+          min_purchase_amount: coupon.min_purchase_amount,
+          applies_to: appliesTo,
+        }
+      });
+    } catch (error: any) {
+      console.error('Coupon validation error:', error);
+      res.status(500).json({ valid: false, error: 'Failed to validate coupon' });
+    }
+  });
+
+  // Get all coupons (admin)
+  app.get('/api/admin/coupons', async (req: Request, res: Response) => {
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupons?select=*&order=created_at.desc`,
+        {
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching coupons:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create coupon (admin)
+  app.post('/api/admin/coupons', async (req: Request, res: Response) => {
+    try {
+      const couponData = req.body;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      // Create coupon
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupons`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({
+            code: couponData.code.toUpperCase(),
+            description: couponData.description,
+            discount_type: couponData.discount_type,
+            default_discount_value: couponData.default_discount_value,
+            is_active: couponData.is_active ?? true,
+            start_date: couponData.start_date,
+            end_date: couponData.end_date,
+            usage_limit: couponData.usage_limit,
+            min_purchase_amount: couponData.min_purchase_amount,
+            max_discount_amount: couponData.max_discount_amount,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      const data = await response.json();
+      res.json(data[0]);
+    } catch (error: any) {
+      console.error('Error creating coupon:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update coupon (admin)
+  app.patch('/api/admin/coupons/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const couponData = req.body;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({
+            ...couponData,
+            code: couponData.code?.toUpperCase(),
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update coupon');
+      }
+
+      const data = await response.json();
+      res.json(data[0]);
+    } catch (error: any) {
+      console.error('Error updating coupon:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete coupon (admin)
+  app.delete('/api/admin/coupons/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete coupon');
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting coupon:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get coupon product discounts (admin)
+  app.get('/api/admin/coupons/:id/products', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${id}&select=*,material:study_materials(id,title)`,
+        {
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching coupon products:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add product discount to coupon (admin)
+  app.post('/api/admin/coupons/:id/products', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { material_id, discount_value, applies_to } = req.body;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupon_products`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({
+            coupon_id: id,
+            material_id,
+            discount_value,
+            applies_to: applies_to || 'both',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      const data = await response.json();
+      res.json(data[0]);
+    } catch (error: any) {
+      console.error('Error adding product discount:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Remove product discount from coupon (admin)
+  app.delete('/api/admin/coupon-products/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupon_products?id=eq.${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete product discount');
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting product discount:', error);
       res.status(500).json({ error: error.message });
     }
   });
