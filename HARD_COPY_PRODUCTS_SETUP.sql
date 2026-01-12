@@ -23,14 +23,18 @@ CREATE TABLE IF NOT EXISTS hard_copy_products (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Add columns to purchases table for hard copy products
+-- 2. Add columns to purchases table for hard copy products and guest checkout
 ALTER TABLE purchases ADD COLUMN IF NOT EXISTS product_id UUID;
 ALTER TABLE purchases ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) DEFAULT 'digital';
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS guest_email VARCHAR(255);
 
--- 3. Enable RLS
+-- 3. Make user_id nullable for guest checkout
+ALTER TABLE purchases ALTER COLUMN user_id DROP NOT NULL;
+
+-- 4. Enable RLS
 ALTER TABLE hard_copy_products ENABLE ROW LEVEL SECURITY;
 
--- 4. Simple RLS policies
+-- 5. Simple RLS policies
 DROP POLICY IF EXISTS "Anyone can view active products" ON hard_copy_products;
 CREATE POLICY "Anyone can view active products" ON hard_copy_products FOR SELECT USING (is_active = true);
 
@@ -43,7 +47,7 @@ CREATE POLICY "Anyone can update products" ON hard_copy_products FOR UPDATE USIN
 DROP POLICY IF EXISTS "Anyone can delete products" ON hard_copy_products;
 CREATE POLICY "Anyone can delete products" ON hard_copy_products FOR DELETE USING (true);
 
--- 5. Grant permissions
+-- 6. Grant permissions
 GRANT ALL ON hard_copy_products TO anon;
 GRANT ALL ON hard_copy_products TO authenticated;
 

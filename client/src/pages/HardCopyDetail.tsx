@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Package, Share2, Loader2, X, Tag, Truck, ShoppingCart, Check } from "lucide-react";
+import { ArrowLeft, Package, Share2, Loader2, X, Tag, Truck, ShoppingCart, Check, Gift, Percent } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,7 @@ interface Product {
 interface ShippingAddress {
   name: string;
   phone: string;
+  email: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -44,11 +45,10 @@ export default function HardCopyDetail() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [couponCode, setCouponCode] = useState('');
-  const [showCouponInput, setShowCouponInput] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
-    name: '', phone: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
+    name: '', phone: '', email: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,6 +61,13 @@ export default function HardCopyDetail() {
   }, []);
 
   useEffect(() => { if (params?.slug) fetchProduct(params.slug); }, [params?.slug]);
+  
+  useEffect(() => {
+    // Pre-fill email if logged in
+    if (user?.email) {
+      setShippingAddress(prev => ({ ...prev, email: user.email || '' }));
+    }
+  }, [user]);
 
   const fetchProduct = async (slugOrId: string) => {
     setLoading(true);
@@ -89,8 +96,7 @@ export default function HardCopyDetail() {
       const data = await res.json();
       if (data.valid) {
         setAppliedCoupon(data.coupon);
-        setShowCouponInput(false);
-        toast({ title: "Coupon Applied!" });
+        toast({ title: "🎉 Coupon Applied!", description: `You save ₹${calculateDiscount(totalPrice)}` });
       } else {
         toast({ title: "Invalid Coupon", description: data.error, variant: "destructive" });
       }
@@ -100,12 +106,17 @@ export default function HardCopyDetail() {
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponCode(''); };
 
+  const totalPrice = product ? product.price + product.shipping_cost : 0;
+  
   const calculateDiscount = (price: number) => {
     if (!appliedCoupon) return 0;
     let d = appliedCoupon.discount_type === 'percentage' ? (price * appliedCoupon.discount_value) / 100 : appliedCoupon.discount_value;
     if (appliedCoupon.max_discount_amount) d = Math.min(d, appliedCoupon.max_discount_amount);
     return Math.min(d, price);
   };
+
+  const discount = calculateDiscount(totalPrice);
+  const finalPrice = totalPrice - discount;
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -115,15 +126,11 @@ export default function HardCopyDetail() {
 
 
   const handlePurchase = async () => {
-    if (!user) { toast({ title: "Please login first", variant: "destructive" }); return; }
+    if (!shippingAddress.email) { toast({ title: "Email is required", variant: "destructive" }); return; }
     if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address_line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.pincode) {
       toast({ title: "Fill all address fields", variant: "destructive" }); return;
     }
     if (!product) return;
-
-    const basePrice = product.price + product.shipping_cost;
-    const discount = calculateDiscount(basePrice);
-    const finalPrice = basePrice - discount;
 
     setProcessingPayment(true);
     try {
@@ -132,13 +139,14 @@ export default function HardCopyDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: finalPrice,
-          originalAmount: basePrice,
+          originalAmount: totalPrice,
           discountAmount: discount,
           couponId: appliedCoupon?.id,
           couponCode: appliedCoupon?.code,
           productId: product.id,
           productType: 'hardcopy',
-          userId: user.id,
+          userId: user?.id || null,
+          guestEmail: shippingAddress.email,
           deliveryType: 'physical',
           shippingAddress,
         }),
@@ -161,9 +169,10 @@ export default function HardCopyDetail() {
               ...response,
               productId: product.id,
               productType: 'hardcopy',
-              userId: user.id,
+              userId: user?.id || null,
+              guestEmail: shippingAddress.email,
               amount: finalPrice,
-              originalAmount: basePrice,
+              originalAmount: totalPrice,
               discountAmount: discount,
               couponId: appliedCoupon?.id,
               couponCode: appliedCoupon?.code,
@@ -181,7 +190,7 @@ export default function HardCopyDetail() {
           }
           setProcessingPayment(false);
         },
-        prefill: { email: user.email },
+        prefill: { email: shippingAddress.email, contact: shippingAddress.phone },
         theme: { color: '#0B9B9B' },
         modal: { ondismiss: () => setProcessingPayment(false) }
       });
@@ -191,10 +200,6 @@ export default function HardCopyDetail() {
       setProcessingPayment(false);
     }
   };
-
-  const totalPrice = product ? product.price + product.shipping_cost : 0;
-  const discount = calculateDiscount(totalPrice);
-  const finalPrice = totalPrice - discount;
 
   if (loading) return (
     <div className="min-h-screen bg-white"><Navbar />
@@ -219,10 +224,9 @@ export default function HardCopyDetail() {
           <Check className="h-10 w-10 text-green-600" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Order Placed!</h1>
-        <p className="text-gray-600 mb-6">Your order for "{product.title}" has been placed successfully. You'll receive tracking information via email once shipped.</p>
+        <p className="text-gray-600 mb-6">Your order for "{product.title}" has been placed successfully. You'll receive tracking information at {shippingAddress.email} once shipped.</p>
         <div className="space-y-3">
-          <Link href="/dashboard"><Button className="w-full bg-[#0B9B9B]">View My Orders</Button></Link>
-          <Link href="/materials"><Button variant="outline" className="w-full">Continue Shopping</Button></Link>
+          <Link href="/materials"><Button className="w-full bg-[#0B9B9B]">Continue Shopping</Button></Link>
         </div>
       </div>
     </div>
@@ -235,40 +239,103 @@ export default function HardCopyDetail() {
       {/* Address Modal */}
       {showAddressModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center">
-          <div className="bg-white w-full md:w-[400px] md:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white p-3 border-b flex items-center justify-between">
-              <span className="font-semibold">Delivery Address</span>
-              <button onClick={() => setShowAddressModal(false)} className="p-1"><X className="h-5 w-5" /></button>
+          <div className="bg-white w-full md:w-[450px] md:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between md:rounded-t-2xl">
+              <div>
+                <span className="font-bold text-lg">📦 Order Details</span>
+                <p className="text-xs text-gray-500">{product.title}</p>
+              </div>
+              <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
             </div>
-            <div className="p-4 space-y-3">
-              <Input placeholder="Full Name *" value={shippingAddress.name} onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})} />
-              <Input placeholder="Phone Number *" type="tel" value={shippingAddress.phone} onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})} />
-              <Input placeholder="Address Line 1 *" value={shippingAddress.address_line1} onChange={(e) => setShippingAddress({...shippingAddress, address_line1: e.target.value})} />
-              <Input placeholder="Landmark (Optional)" value={shippingAddress.address_line2} onChange={(e) => setShippingAddress({...shippingAddress, address_line2: e.target.value})} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="City *" value={shippingAddress.city} onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})} />
-                <Input placeholder="State *" value={shippingAddress.state} onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})} />
+            
+            {/* Coupon Section */}
+            <div className="p-4 bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/5 border-b">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="h-5 w-5 text-[#0B9B9B]" />
+                <span className="font-semibold text-sm">Have a Coupon?</span>
               </div>
-              <Input placeholder="Pincode *" type="tel" value={shippingAddress.pincode} onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})} />
-            </div>
-            <div className="p-4 border-t bg-gray-50">
-              <div className="flex justify-between text-sm mb-2">
-                <span>Product Price</span><span>₹{product.price}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Shipping</span><span>₹{product.shipping_cost}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600 mb-2">
-                  <span>Discount</span><span>-₹{discount}</span>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-100 border border-green-300 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-green-700">{appliedCoupon.code}</span>
+                      <p className="text-xs text-green-600">You save ₹{discount}!</p>
+                    </div>
+                  </div>
+                  <button onClick={removeCoupon} className="text-sm text-red-500 hover:text-red-700 font-medium">Remove</button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Enter coupon code" 
+                    value={couponCode} 
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                    className="h-11 uppercase font-medium flex-1 border-2 border-dashed border-gray-300 focus:border-[#0B9B9B]" 
+                  />
+                  <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} className="h-11 px-6 bg-[#0B9B9B]">
+                    {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                  </Button>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Total</span><span>₹{finalPrice}</span>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email Address *</label>
+                <Input placeholder="your@email.com" type="email" value={shippingAddress.email} onChange={(e) => setShippingAddress({...shippingAddress, email: e.target.value})} className="h-11 mt-1" />
+                <p className="text-xs text-gray-500 mt-1">We'll send tracking updates here</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Full Name *</label>
+                  <Input placeholder="John Doe" value={shippingAddress.name} onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})} className="h-11 mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Phone *</label>
+                  <Input placeholder="9876543210" type="tel" value={shippingAddress.phone} onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})} className="h-11 mt-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Address *</label>
+                <Input placeholder="House/Flat No., Street, Area" value={shippingAddress.address_line1} onChange={(e) => setShippingAddress({...shippingAddress, address_line1: e.target.value})} className="h-11 mt-1" />
+              </div>
+              <Input placeholder="Landmark (Optional)" value={shippingAddress.address_line2} onChange={(e) => setShippingAddress({...shippingAddress, address_line2: e.target.value})} className="h-11" />
+              <div className="grid grid-cols-3 gap-3">
+                <Input placeholder="City *" value={shippingAddress.city} onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})} className="h-11" />
+                <Input placeholder="State *" value={shippingAddress.state} onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})} className="h-11" />
+                <Input placeholder="Pincode *" type="tel" value={shippingAddress.pincode} onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})} className="h-11" />
               </div>
             </div>
+            
+            {/* Price Summary */}
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Product Price</span>
+                  <span>₹{product.price}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Shipping</span>
+                  <span>₹{product.shipping_cost}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Coupon Discount</span>
+                    <span>-₹{discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                  <span>Total</span>
+                  <span className="text-[#0B9B9B]">₹{finalPrice}</span>
+                </div>
+              </div>
+            </div>
+            
             <div className="p-4">
-              <Button onClick={handlePurchase} disabled={processingPayment} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold">
+              <Button onClick={handlePurchase} disabled={processingPayment} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg">
                 {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : `Pay ₹${finalPrice}`}
               </Button>
             </div>
@@ -319,32 +386,36 @@ export default function HardCopyDetail() {
               {product.original_price && product.original_price > product.price && (
                 <span className="text-lg text-gray-400 line-through">₹{product.original_price + product.shipping_cost}</span>
               )}
-              <Badge className="bg-green-500">Free Shipping on ₹{product.shipping_cost}+</Badge>
+              <Badge className="bg-green-500">Includes Shipping</Badge>
             </div>
 
-            <p className="text-sm text-gray-500 mt-1">Includes ₹{product.shipping_cost} shipping</p>
+            <p className="text-sm text-gray-500 mt-1">Product ₹{product.price} + Shipping ₹{product.shipping_cost}</p>
 
-            {/* Coupon */}
-            <div className="mt-4">
+            {/* Coupon - Always visible */}
+            <div className="mt-4 p-3 bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/10 rounded-xl border border-[#0B9B9B]/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="h-4 w-4 text-[#0B9B9B]" />
+                <span className="text-sm font-semibold text-[#1B5E5E]">Have a Coupon Code?</span>
+              </div>
               {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
-                  <span className="text-sm font-medium text-green-700 flex items-center gap-1">
-                    <Tag className="h-3 w-3" />{appliedCoupon.code} - ₹{discount} off
+                <div className="flex items-center justify-between bg-green-100 rounded-lg p-2">
+                  <span className="text-sm font-bold text-green-700 flex items-center gap-1">
+                    <Check className="h-4 w-4" /> {appliedCoupon.code} - ₹{discount} off!
                   </span>
-                  <button onClick={removeCoupon} className="text-xs text-red-500">Remove</button>
-                </div>
-              ) : showCouponInput ? (
-                <div className="flex gap-2">
-                  <Input placeholder="Enter code" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} className="uppercase flex-1" />
-                  <Button onClick={validateCoupon} disabled={validatingCoupon} size="sm" className="bg-[#0B9B9B]">
-                    {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Apply'}
-                  </Button>
-                  <Button onClick={() => setShowCouponInput(false)} variant="ghost" size="sm"><X className="h-4 w-4" /></Button>
+                  <button onClick={removeCoupon} className="text-xs text-red-500 font-medium">Remove</button>
                 </div>
               ) : (
-                <button onClick={() => setShowCouponInput(true)} className="text-sm text-[#0B9B9B] hover:underline flex items-center gap-1">
-                  <Tag className="h-3 w-3" /> Have a coupon code?
-                </button>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Enter code" 
+                    value={couponCode} 
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                    className="h-9 text-sm uppercase flex-1 border-dashed" 
+                  />
+                  <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} size="sm" className="h-9 bg-[#0B9B9B]">
+                    {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Apply'}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -365,6 +436,7 @@ export default function HardCopyDetail() {
               <Button onClick={() => setShowAddressModal(true)} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold text-lg">
                 <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now - ₹{appliedCoupon ? finalPrice : totalPrice}
               </Button>
+              <p className="text-xs text-center text-gray-500">No login required • Secure payment via Razorpay</p>
               <Button onClick={handleShare} variant="outline" className="w-full h-11">
                 <Share2 className="mr-2 h-4 w-4" /> Share
               </Button>

@@ -543,17 +543,17 @@ export default function Materials() {
               </CardContent>
             </Card>
           ) : (
-            <Tabs defaultValue="digital" className="w-full">
+            <Tabs defaultValue="hardcopy" className="w-full">
               <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
-                <TabsTrigger value="digital" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Digital</span>
-                  <Badge variant="secondary" className="ml-1">{digitalMaterials.length}</Badge>
-                </TabsTrigger>
                 <TabsTrigger value="hardcopy" className="flex items-center gap-2">
                   <Package className="h-4 w-4" />
                   <span className="hidden sm:inline">Hard Copy</span>
                   <Badge variant="secondary" className="ml-1">{filteredHardCopy.length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="digital" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Digital</span>
+                  <Badge variant="secondary" className="ml-1">{digitalMaterials.length}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="free" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -561,29 +561,6 @@ export default function Materials() {
                   <Badge variant="secondary" className="ml-1">{freeMaterials.length}</Badge>
                 </TabsTrigger>
               </TabsList>
-
-              {/* Digital Downloads Tab */}
-              <TabsContent value="digital">
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">
-                    <Download className="h-5 w-5 text-[#0B9B9B]" />
-                    Digital Downloads (PDF)
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Instant download after purchase</p>
-                </div>
-                {digitalMaterials.length > 0 ? (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {digitalMaterials.map((material) => renderMaterialCard(material, false))}
-                  </div>
-                ) : (
-                  <Card className="border-none shadow-lg bg-white max-w-lg mx-auto">
-                    <CardContent className="p-12 text-center">
-                      <Download className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No digital materials available</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
 
               {/* Hard Copy Tab */}
               <TabsContent value="hardcopy">
@@ -644,6 +621,29 @@ export default function Materials() {
                     <CardContent className="p-12 text-center">
                       <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500">No hard copy books available</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Digital Downloads Tab */}
+              <TabsContent value="digital">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">
+                    <Download className="h-5 w-5 text-[#0B9B9B]" />
+                    Digital Downloads (PDF)
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Instant download after purchase</p>
+                </div>
+                {digitalMaterials.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {digitalMaterials.map((material) => renderMaterialCard(material, false))}
+                  </div>
+                ) : (
+                  <Card className="border-none shadow-lg bg-white max-w-lg mx-auto">
+                    <CardContent className="p-12 text-center">
+                      <Download className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No digital materials available</p>
                     </CardContent>
                   </Card>
                 )}

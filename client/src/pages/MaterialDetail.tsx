@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, Tag, BookOpen } from "lucide-react";
+import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, Tag, BookOpen, Percent, Gift } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,27 +19,28 @@ interface Material {
 }
 
 interface ShippingAddress {
-  name: string; phone: string; address_line1: string; address_line2: string;
+  name: string; phone: string; email: string; address_line1: string; address_line2: string;
   city: string; state: string; pincode: string;
 }
 
 export default function MaterialDetail() {
   const [, params] = useRoute("/materials/:slug");
+  const [, setLocation] = useLocation();
   const [material, setMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPurchased, setIsPurchased] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutType, setCheckoutType] = useState<'digital' | 'physical'>('digital');
   const [couponCode, setCouponCode] = useState('');
-  const [showCouponInput, setShowCouponInput] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     id: string; code: string; discount_type: 'percentage' | 'fixed';
     discount_value: number; max_discount_amount?: number;
   } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
-    name: '', phone: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
+  const [guestInfo, setGuestInfo] = useState<ShippingAddress>({
+    name: '', phone: '', email: '', address_line1: '', address_line2: '', city: '', state: '', pincode: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,26 +66,33 @@ export default function MaterialDetail() {
     } catch (err) {}
   };
 
-  const validateCoupon = async (deliveryType: 'digital' | 'physical' = 'digital') => {
+  const validateCoupon = async () => {
     if (!couponCode.trim()) { toast({ title: "Enter a coupon code", variant: "destructive" }); return; }
     setValidatingCoupon(true);
     try {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), materialId: material?.id, deliveryType, userId: user?.id }),
+        body: JSON.stringify({ code: couponCode.trim(), materialId: material?.id, deliveryType: checkoutType, userId: user?.id }),
       });
       const contentType = res.headers.get('content-type');
       if (!contentType?.includes('application/json')) { toast({ title: "Server Error", variant: "destructive" }); return; }
       const data = await res.json();
       if (data.valid) {
         setAppliedCoupon(data.coupon);
-        setShowCouponInput(false);
-        toast({ title: "Coupon Applied!", description: `₹${data.coupon.discount_value} off` });
+        toast({ title: "🎉 Coupon Applied!", description: `You save ₹${calculateDiscountAmount(data.coupon)}` });
       } else {
         toast({ title: "Invalid Coupon", description: data.error, variant: "destructive" });
       }
     } catch (err) { toast({ title: "Error", variant: "destructive" }); }
     finally { setValidatingCoupon(false); }
+  };
+
+  const calculateDiscountAmount = (coupon: any) => {
+    const basePrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
+    if (!coupon) return 0;
+    let d = coupon.discount_type === 'percentage' ? (basePrice * coupon.discount_value) / 100 : coupon.discount_value;
+    if (coupon.discount_type === 'percentage' && coupon.max_discount_amount) d = Math.min(d, coupon.max_discount_amount);
+    return Math.min(d, basePrice);
   };
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponCode(''); };
@@ -94,6 +102,15 @@ export default function MaterialDetail() {
     let d = appliedCoupon.discount_type === 'percentage' ? (price * appliedCoupon.discount_value) / 100 : appliedCoupon.discount_value;
     if (appliedCoupon.discount_type === 'percentage' && appliedCoupon.max_discount_amount) d = Math.min(d, appliedCoupon.max_discount_amount);
     return Math.min(d, price);
+  };
+
+  const openCheckout = (type: 'digital' | 'physical') => {
+    setCheckoutType(type);
+    setShowCheckoutModal(true);
+    // Pre-fill email if logged in
+    if (user?.email) {
+      setGuestInfo(prev => ({ ...prev, email: user.email || '' }));
+    }
   };
 
 
@@ -133,40 +150,71 @@ export default function MaterialDetail() {
   };
 
 
-  const handlePurchase = async (type: 'digital' | 'physical' = 'digital') => {
-    if (!user) { toast({ title: "Please login first", variant: "destructive" }); return; }
-    if (type === 'physical' && (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address_line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.pincode)) {
-      toast({ title: "Fill all address fields", variant: "destructive" }); return;
+  const handlePurchase = async () => {
+    // Validate required fields
+    if (!guestInfo.email) { toast({ title: "Email is required", variant: "destructive" }); return; }
+    if (checkoutType === 'physical') {
+      if (!guestInfo.name || !guestInfo.phone || !guestInfo.address_line1 || !guestInfo.city || !guestInfo.state || !guestInfo.pincode) {
+        toast({ title: "Fill all address fields", variant: "destructive" }); return;
+      }
     }
-    const basePrice = type === 'physical' ? (material?.hard_copy_price || 0) + (material?.shipping_cost || 0) : (material?.price || 0);
+    
+    const basePrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
     const discount = calculateDiscount(basePrice);
     const finalPrice = basePrice - discount;
-    if (finalPrice === 0 && type === 'digital') { handleDownload(); return; }
+    
+    if (finalPrice === 0 && checkoutType === 'digital') { handleDownload(); setShowCheckoutModal(false); return; }
+    
     setProcessingPayment(true);
     try {
       const orderRes = await fetch('/api/create-order', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: finalPrice, originalAmount: basePrice, discountAmount: discount, couponId: appliedCoupon?.id, couponCode: appliedCoupon?.code, materialId: material?.id, userId: user.id, deliveryType: type, shippingAddress: type === 'physical' ? shippingAddress : null }),
+        body: JSON.stringify({ 
+          amount: finalPrice, 
+          originalAmount: basePrice, 
+          discountAmount: discount, 
+          couponId: appliedCoupon?.id, 
+          couponCode: appliedCoupon?.code, 
+          materialId: material?.id, 
+          userId: user?.id || null,
+          guestEmail: guestInfo.email,
+          deliveryType: checkoutType, 
+          shippingAddress: checkoutType === 'physical' ? guestInfo : null 
+        }),
       });
       const orderData = await orderRes.json();
-      if (!orderData.orderId) throw new Error('Failed');
+      if (!orderData.orderId) throw new Error('Failed to create order');
+      
       const razorpay = new window.Razorpay({
         key: orderData.keyId, amount: orderData.amount, currency: orderData.currency, name: 'NEETPeak',
         description: material?.title, order_id: orderData.orderId,
         handler: async (response: any) => {
           const verifyRes = await fetch('/api/verify-payment', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...response, materialId: material?.id, userId: user.id, amount: finalPrice, originalAmount: basePrice, discountAmount: discount, couponId: appliedCoupon?.id, couponCode: appliedCoupon?.code, deliveryType: type, shippingAddress: type === 'physical' ? shippingAddress : null }),
+            body: JSON.stringify({ 
+              ...response, 
+              materialId: material?.id, 
+              userId: user?.id || null,
+              guestEmail: guestInfo.email,
+              amount: finalPrice, 
+              originalAmount: basePrice, 
+              discountAmount: discount, 
+              couponId: appliedCoupon?.id, 
+              couponCode: appliedCoupon?.code, 
+              deliveryType: checkoutType, 
+              shippingAddress: checkoutType === 'physical' ? guestInfo : null 
+            }),
           });
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
-            toast({ title: "Purchase Successful! 🎉" });
-            setIsPurchased(true); setShowAddressModal(false); removeCoupon();
-            if (type === 'digital' && material?.file_url) setTimeout(() => window.open(material.file_url, '_blank'), 500);
+            toast({ title: "🎉 Purchase Successful!", description: checkoutType === 'digital' ? "Your download will start shortly" : "You'll receive tracking info via email" });
+            setIsPurchased(true); setShowCheckoutModal(false); removeCoupon();
+            if (checkoutType === 'digital' && material?.file_url) setTimeout(() => window.open(material.file_url, '_blank'), 500);
           } else toast({ title: "Payment Failed", variant: "destructive" });
           setProcessingPayment(false);
         },
-        prefill: { email: user.email }, theme: { color: '#0B9B9B' },
+        prefill: { email: guestInfo.email, contact: guestInfo.phone },
+        theme: { color: '#0B9B9B' },
         modal: { ondismiss: () => setProcessingPayment(false) }
       });
       razorpay.open();
@@ -177,6 +225,9 @@ export default function MaterialDetail() {
   const isFree = !material?.price || material.price === 0;
   const canAccess = isFree || isPurchased;
   const hardCopyTotal = (material?.hard_copy_price || 0) + (material?.shipping_cost || 0);
+  const currentPrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
+  const discount = calculateDiscount(currentPrice);
+  const finalPrice = currentPrice - discount;
   const digitalDiscount = calculateDiscount(material?.price || 0);
   const digitalFinalPrice = (material?.price || 0) - digitalDiscount;
   const hardCopyDiscount = calculateDiscount(hardCopyTotal);
@@ -203,29 +254,119 @@ export default function MaterialDetail() {
     <div className="min-h-screen bg-white pb-20 md:pb-0">
       <Navbar />
       
-      {/* Address Modal */}
-      {showAddressModal && (
+      {/* Checkout Modal */}
+      {showCheckoutModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center">
-          <div className="bg-white w-full md:w-[400px] md:rounded-2xl rounded-t-2xl max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white p-3 border-b flex items-center justify-between md:rounded-t-2xl">
-              <span className="font-semibold">Delivery Address</span>
-              <button onClick={() => setShowAddressModal(false)} className="p-1"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="p-3 space-y-2">
-              <Input placeholder="Full Name *" value={shippingAddress.name} onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})} className="h-10" />
-              <Input placeholder="Phone *" type="tel" value={shippingAddress.phone} onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})} className="h-10" />
-              <Input placeholder="Address *" value={shippingAddress.address_line1} onChange={(e) => setShippingAddress({...shippingAddress, address_line1: e.target.value})} className="h-10" />
-              <Input placeholder="Landmark (Optional)" value={shippingAddress.address_line2} onChange={(e) => setShippingAddress({...shippingAddress, address_line2: e.target.value})} className="h-10" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input placeholder="City *" value={shippingAddress.city} onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})} className="h-10" />
-                <Input placeholder="State *" value={shippingAddress.state} onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})} className="h-10" />
+          <div className="bg-white w-full md:w-[450px] md:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between md:rounded-t-2xl">
+              <div>
+                <span className="font-bold text-lg">{checkoutType === 'physical' ? '📦 Hard Copy Order' : '📥 Digital Download'}</span>
+                <p className="text-xs text-gray-500">{material.title}</p>
               </div>
-              <Input placeholder="Pincode *" type="tel" value={shippingAddress.pincode} onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})} className="h-10" />
+              <button onClick={() => setShowCheckoutModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
             </div>
-            <div className="p-3 border-t">
-              <Button onClick={() => handlePurchase('physical')} disabled={processingPayment} className="w-full h-11 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold">
-                {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : `Pay ₹${appliedCoupon ? hardCopyFinalPrice : hardCopyTotal}`}
+            
+            {/* Coupon Section - Prominent */}
+            <div className="p-4 bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/5 border-b">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="h-5 w-5 text-[#0B9B9B]" />
+                <span className="font-semibold text-sm">Have a Coupon?</span>
+              </div>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-100 border border-green-300 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-green-700">{appliedCoupon.code}</span>
+                      <p className="text-xs text-green-600">You save ₹{discount}!</p>
+                    </div>
+                  </div>
+                  <button onClick={removeCoupon} className="text-sm text-red-500 hover:text-red-700 font-medium">Remove</button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Enter coupon code" 
+                    value={couponCode} 
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                    className="h-11 uppercase font-medium flex-1 border-2 border-dashed border-gray-300 focus:border-[#0B9B9B]" 
+                  />
+                  <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} className="h-11 px-6 bg-[#0B9B9B]">
+                    {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Form */}
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email Address *</label>
+                <Input 
+                  placeholder="your@email.com" 
+                  type="email"
+                  value={guestInfo.email} 
+                  onChange={(e) => setGuestInfo({...guestInfo, email: e.target.value})} 
+                  className="h-11 mt-1" 
+                />
+                <p className="text-xs text-gray-500 mt-1">We'll send your {checkoutType === 'digital' ? 'download link' : 'order updates'} here</p>
+              </div>
+              
+              {checkoutType === 'physical' && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Full Name *</label>
+                      <Input placeholder="John Doe" value={guestInfo.name} onChange={(e) => setGuestInfo({...guestInfo, name: e.target.value})} className="h-11 mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Phone *</label>
+                      <Input placeholder="9876543210" type="tel" value={guestInfo.phone} onChange={(e) => setGuestInfo({...guestInfo, phone: e.target.value})} className="h-11 mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Address *</label>
+                    <Input placeholder="House/Flat No., Street, Area" value={guestInfo.address_line1} onChange={(e) => setGuestInfo({...guestInfo, address_line1: e.target.value})} className="h-11 mt-1" />
+                  </div>
+                  <Input placeholder="Landmark (Optional)" value={guestInfo.address_line2} onChange={(e) => setGuestInfo({...guestInfo, address_line2: e.target.value})} className="h-11" />
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input placeholder="City *" value={guestInfo.city} onChange={(e) => setGuestInfo({...guestInfo, city: e.target.value})} className="h-11" />
+                    <Input placeholder="State *" value={guestInfo.state} onChange={(e) => setGuestInfo({...guestInfo, state: e.target.value})} className="h-11" />
+                    <Input placeholder="Pincode *" type="tel" value={guestInfo.pincode} onChange={(e) => setGuestInfo({...guestInfo, pincode: e.target.value})} className="h-11" />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Price Summary */}
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">{checkoutType === 'physical' ? 'Product + Shipping' : 'Price'}</span>
+                  <span>₹{currentPrice}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Coupon Discount</span>
+                    <span>-₹{discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                  <span>Total</span>
+                  <span className="text-[#0B9B9B]">₹{finalPrice}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pay Button */}
+            <div className="p-4">
+              <Button onClick={handlePurchase} disabled={processingPayment} className="w-full h-12 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-bold text-lg">
+                {processingPayment ? <Loader2 className="h-5 w-5 animate-spin" /> : `Pay ₹${finalPrice}`}
               </Button>
+              <p className="text-xs text-center text-gray-500 mt-2">🔒 Secure payment via Razorpay</p>
             </div>
           </div>
         </div>
@@ -292,30 +433,32 @@ export default function MaterialDetail() {
               </span>
             </div>
 
-            {/* Coupon Section */}
+            {/* Coupon Section - Always visible for paid materials */}
             {!canAccess && !isFree && (
-              <div className="mt-4">
+              <div className="mt-4 p-3 bg-gradient-to-r from-[#0B9B9B]/5 to-[#0DCDCD]/10 rounded-xl border border-[#0B9B9B]/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="h-4 w-4 text-[#0B9B9B]" />
+                  <span className="text-sm font-semibold text-[#1B5E5E]">Have a Coupon Code?</span>
+                </div>
                 {appliedCoupon ? (
-                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
-                    <span className="text-sm font-medium text-green-700 flex items-center gap-1">
-                      <Tag className="h-3 w-3" />{appliedCoupon.code} applied - ₹{digitalDiscount} off
+                  <div className="flex items-center justify-between bg-green-100 rounded-lg p-2">
+                    <span className="text-sm font-bold text-green-700 flex items-center gap-1">
+                      <Check className="h-4 w-4" /> {appliedCoupon.code} - ₹{digitalDiscount} off!
                     </span>
-                    <button onClick={removeCoupon} className="text-xs text-red-500 hover:text-red-700">Remove</button>
-                  </div>
-                ) : showCouponInput ? (
-                  <div className="flex gap-2">
-                    <Input placeholder="Enter code" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} className="h-9 text-sm uppercase flex-1" />
-                    <Button onClick={() => validateCoupon('digital')} disabled={validatingCoupon} size="sm" className="h-9 bg-[#0B9B9B]">
-                      {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Apply'}
-                    </Button>
-                    <Button onClick={() => setShowCouponInput(false)} variant="ghost" size="sm" className="h-9 px-2">
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <button onClick={removeCoupon} className="text-xs text-red-500 font-medium">Remove</button>
                   </div>
                 ) : (
-                  <button onClick={() => setShowCouponInput(true)} className="text-sm text-[#0B9B9B] hover:underline flex items-center gap-1">
-                    <Tag className="h-3 w-3" /> Have a coupon code?
-                  </button>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Enter code" 
+                      value={couponCode} 
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                      className="h-9 text-sm uppercase flex-1 border-dashed" 
+                    />
+                    <Button onClick={validateCoupon} disabled={validatingCoupon || !couponCode} size="sm" className="h-9 bg-[#0B9B9B]">
+                      {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Apply'}
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
@@ -340,19 +483,20 @@ export default function MaterialDetail() {
                 </Button>
               ) : (
                 <>
-                  <Button onClick={() => handlePurchase('digital')} disabled={processingPayment} className="w-full h-11 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold">
+                  <Button onClick={() => openCheckout('digital')} disabled={processingPayment} className="w-full h-11 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold">
                     {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                       <>
                         <Download className="mr-2 h-4 w-4" /> 
-                        Buy for ₹{appliedCoupon ? digitalFinalPrice : material.price}
+                        Buy Digital - ₹{appliedCoupon ? digitalFinalPrice : material.price}
                       </>
                     )}
                   </Button>
                   {material.has_hard_copy && (
-                    <Button onClick={() => setShowAddressModal(true)} variant="outline" className="w-full h-11 border-[#0B9B9B] text-[#0B9B9B] hover:bg-[#0B9B9B]/5">
+                    <Button onClick={() => openCheckout('physical')} variant="outline" className="w-full h-11 border-[#0B9B9B] text-[#0B9B9B] hover:bg-[#0B9B9B]/5">
                       <Package className="mr-2 h-4 w-4" /> Get Hard Copy - ₹{appliedCoupon ? hardCopyFinalPrice : hardCopyTotal}
                     </Button>
                   )}
+                  <p className="text-xs text-center text-gray-500">No login required • Instant access after payment</p>
                 </>
               )}
               
@@ -379,13 +523,13 @@ export default function MaterialDetail() {
                 <Download className="mr-1 h-4 w-4" /> Download
               </Button>
             ) : (
-              <Button onClick={() => handlePurchase('digital')} disabled={processingPayment} className="w-full h-10 bg-[#0B9B9B] font-semibold text-sm">
+              <Button onClick={() => openCheckout('digital')} disabled={processingPayment} className="w-full h-10 bg-[#0B9B9B] font-semibold text-sm">
                 {processingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buy Now'}
               </Button>
             )}
           </div>
           {!canAccess && material.has_hard_copy && (
-            <Button onClick={() => setShowAddressModal(true)} variant="outline" size="icon" className="h-10 w-10 border-[#0B9B9B] text-[#0B9B9B]">
+            <Button onClick={() => openCheckout('physical')} variant="outline" size="icon" className="h-10 w-10 border-[#0B9B9B] text-[#0B9B9B]">
               <Package className="h-4 w-4" />
             </Button>
           )}

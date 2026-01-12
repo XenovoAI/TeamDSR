@@ -65,8 +65,8 @@ export default async function handler(req, res) {
   try {
     // Create Order
     if (path.includes('/api/create-order') && method === 'POST') {
-      const { amount, materialId, productId, userId } = req.body;
-      if (!amount || (!materialId && !productId) || !userId) {
+      const { amount, materialId, productId, userId, guestEmail } = req.body;
+      if (!amount || (!materialId && !productId)) {
         return res.status(400).json({ error: 'Missing fields' });
       }
       const rp = getRazorpay();
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
         amount: Math.round(amount * 100),
         currency: 'INR',
         receipt: `order_${Date.now()}`,
+        notes: { userId: userId || 'guest', email: guestEmail || '' }
       });
       return res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
     }
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
 
     // Verify Payment
     if (path.includes('/api/verify-payment') && method === 'POST') {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, materialId, productId, productType, userId, amount, originalAmount, discountAmount, couponId, couponCode, deliveryType, shippingAddress } = req.body;
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, materialId, productId, productType, userId, guestEmail, amount, originalAmount, discountAmount, couponId, couponCode, deliveryType, shippingAddress } = req.body;
       const body = razorpay_order_id + '|' + razorpay_payment_id;
       const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '').update(body).digest('hex');
       if (expectedSignature !== razorpay_signature) {
@@ -92,7 +93,8 @@ export default async function handler(req, res) {
       }
       const { url, key } = getSupabaseConfig();
       const purchaseData = {
-        user_id: userId, 
+        user_id: userId || null,
+        guest_email: guestEmail || null,
         material_id: materialId || null,
         product_id: productId || null,
         product_type: productType || 'digital',

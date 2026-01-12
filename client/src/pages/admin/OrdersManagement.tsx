@@ -19,7 +19,8 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 interface Order {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  guest_email: string | null;
   material_id: string | null;
   product_id: string | null;
   product_type: string;
@@ -28,6 +29,7 @@ interface Order {
   shipping_address: {
     name: string;
     phone: string;
+    email?: string;
     address_line1: string;
     address_line2?: string;
     city: string;
@@ -480,6 +482,11 @@ export default function OrdersManagement() {
                               SR: {order.shiprocket_order_id}
                             </Badge>
                           )}
+                          {!order.user_id && order.guest_email && (
+                            <Badge variant="outline" className="text-xs bg-yellow-50">
+                              Guest
+                            </Badge>
+                          )}
                         </div>
                         <h3 className="font-semibold mb-1">{order.material?.title || order.product?.title || 'Unknown Product'}</h3>
                         {order.shipping_address && (
@@ -487,6 +494,7 @@ export default function OrdersManagement() {
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />
                               {order.shipping_address.name}
+                              {order.guest_email && <span className="text-xs">({order.guest_email})</span>}
                             </div>
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />

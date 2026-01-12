@@ -92,9 +92,9 @@ export async function registerRoutes(
   // Create Razorpay Order
   app.post('/api/create-order', async (req: Request, res: Response) => {
     try {
-      const { amount, materialId, productId, userId, deliveryType, shippingAddress } = req.body;
+      const { amount, materialId, productId, userId, guestEmail, deliveryType, shippingAddress } = req.body;
 
-      if (!amount || (!materialId && !productId) || !userId) {
+      if (!amount || (!materialId && !productId)) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
@@ -105,7 +105,8 @@ export async function registerRoutes(
         notes: {
           materialId: materialId || null,
           productId: productId || null,
-          userId,
+          userId: userId || 'guest',
+          email: guestEmail || '',
           deliveryType: deliveryType || 'digital',
         },
       };
@@ -135,6 +136,7 @@ export async function registerRoutes(
         productId,
         productType,
         userId,
+        guestEmail,
         amount,
         originalAmount,
         discountAmount,
@@ -159,7 +161,8 @@ export async function registerRoutes(
         const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
         const purchaseData: any = {
-          user_id: userId,
+          user_id: userId || null,
+          guest_email: guestEmail || null,
           material_id: materialId || null,
           product_id: productId || null,
           product_type: productType || 'digital',
