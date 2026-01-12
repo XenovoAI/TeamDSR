@@ -11,6 +11,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Materials from "@/pages/Materials";
 import MaterialDetail from "@/pages/MaterialDetail";
+import HardCopyDetail from "@/pages/HardCopyDetail";
 import AboutUs from "@/pages/AboutUs";
 import Mentorship from "@/pages/Mentorship";
 import Careers from "@/pages/Careers";
@@ -25,6 +26,7 @@ import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UsersManagement from "@/pages/admin/UsersManagement";
 import MaterialsManagement from "@/pages/admin/MaterialsManagement";
+import HardCopyManagement from "@/pages/admin/HardCopyManagement";
 import OrdersManagement from "@/pages/admin/OrdersManagement";
 import CouponsManagement from "@/pages/admin/CouponsManagement";
 
@@ -46,6 +48,7 @@ function Router() {
       {/* Public Routes - No login required */}
       <Route path="/materials" component={Materials} />
       <Route path="/materials/:slug" component={MaterialDetail} />
+      <Route path="/shop/:slug" component={HardCopyDetail} />
       
       {/* Protected Routes */}
       <Route path="/dashboard">
@@ -73,6 +76,11 @@ function Router() {
       <Route path="/admin/materials">
         <AdminRoute>
           <MaterialsManagement />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/hardcopy">
+        <AdminRoute>
+          <HardCopyManagement />
         </AdminRoute>
       </Route>
       <Route path="/admin/orders">

@@ -131,6 +131,8 @@ export async function registerRoutes(
         razorpay_payment_id, 
         razorpay_signature,
         materialId,
+        productId,
+        productType,
         userId,
         amount,
         originalAmount,
@@ -157,7 +159,9 @@ export async function registerRoutes(
 
         const purchaseData: any = {
           user_id: userId,
-          material_id: materialId,
+          material_id: materialId || null,
+          product_id: productId || null,
+          product_type: productType || 'digital',
           amount: amount,
           original_amount: originalAmount || amount,
           discount_amount: discountAmount || 0,
@@ -242,7 +246,7 @@ export async function registerRoutes(
     }
   });
 
-  // Check if user has purchased a material
+  // Check if user has purchased a material (digital only)
   app.get('/api/check-purchase/:userId/:materialId', async (req: Request, res: Response) => {
     try {
       const { userId, materialId } = req.params;
@@ -250,8 +254,9 @@ export async function registerRoutes(
       const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
       const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
+      // Only check for digital purchases (not physical/hard copy)
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?user_id=eq.${userId}&material_id=eq.${materialId}&status=eq.completed&select=id`,
+        `${supabaseUrl}/rest/v1/purchases?user_id=eq.${userId}&material_id=eq.${materialId}&status=eq.completed&delivery_type=neq.physical&select=id,delivery_type`,
         {
           headers: {
             'apikey': supabaseKey!,
@@ -261,7 +266,11 @@ export async function registerRoutes(
       );
 
       const data = await response.json();
-      res.json({ purchased: data && data.length > 0 });
+      const digitalPurchase = data?.find((p: any) => p.delivery_type !== 'physical');
+      res.json({ 
+        purchased: !!digitalPurchase,
+        delivery_type: digitalPurchase?.delivery_type || null
+      });
     } catch (error: any) {
       console.error('Error checking purchase:', error);
       res.status(500).json({ error: error.message });

@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, FileText, Loader2, Upload, Download, Eye } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FileText, Loader2, Upload, Download, Eye, Package } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAllStudyMaterials, getAllSubjects, getChaptersBySubject } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -299,6 +300,90 @@ export default function MaterialsManagement() {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
+  const renderMaterialItem = (material: any) => (
+    <div
+      key={material.id}
+      className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+        {/* Thumbnail */}
+        {material.thumbnail_url && (
+          <div className="w-full md:w-32 h-24 rounded-lg overflow-hidden shrink-0">
+            <img 
+              src={material.thumbnail_url} 
+              alt={material.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="font-semibold">{material.title}</h3>
+            {material.is_premium && !material.has_hard_copy && (
+              <Badge variant="default" className="bg-yellow-600">
+                <Download className="h-3 w-3 mr-1" />Digital ₹{material.price}
+              </Badge>
+            )}
+            {material.has_hard_copy && (
+              <Badge variant="default" className="bg-blue-600">
+                <Package className="h-3 w-3 mr-1" />Hard Copy ₹{material.hard_copy_price}
+              </Badge>
+            )}
+            {!material.is_premium && (
+              <Badge variant="default" className="bg-green-600">Free</Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">{material.description}</p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">
+              {material.chapter?.subject?.name || 'No Subject'}
+            </Badge>
+            <Badge variant="outline">
+              {material.chapter?.name || 'No Chapter'}
+            </Badge>
+            <Badge variant="outline">{material.material_type}</Badge>
+            {material.file_size && (
+              <Badge variant="outline">{formatFileSize(material.file_size)}</Badge>
+            )}
+            <Badge variant="outline">
+              {material.download_count || 0} downloads
+            </Badge>
+          </div>
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(material.file_url, '_blank')}
+            className="flex-1 md:flex-none tap-target"
+          >
+            <Eye size={16} className="md:mr-0 mr-2" />
+            <span className="md:hidden">View</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleEdit(material)}
+            className="flex-1 md:flex-none tap-target"
+          >
+            <Edit size={16} className="md:mr-0 mr-2" />
+            <span className="md:hidden">Edit</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDelete(material.id, material.file_url)}
+            className="text-red-600 hover:text-red-700 flex-1 md:flex-none tap-target"
+          >
+            <Trash2 size={16} className="md:mr-0 mr-2" />
+            <span className="md:hidden">Delete</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -574,7 +659,7 @@ export default function MaterialsManagement() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-[#0B9B9B]">{materials.length}</div>
@@ -584,17 +669,25 @@ export default function MaterialsManagement() {
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-[#1B5E5E]">
-                {materials.filter(m => m.material_type === 'pdf').length}
+                {materials.filter(m => m.is_premium && !m.has_hard_copy).length}
               </div>
-              <div className="text-xs text-muted-foreground">PDFs</div>
+              <div className="text-xs text-muted-foreground">Digital Only</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-[#0DCDCD]">
-                {materials.filter(m => m.is_premium).length}
+              <div className="text-2xl font-bold text-blue-600">
+                {materials.filter(m => m.has_hard_copy).length}
               </div>
-              <div className="text-xs text-muted-foreground">Premium</div>
+              <div className="text-xs text-muted-foreground">Hard Copy</div>
+            </CardContent>
+          </Card>
+          <Card className="border-none shadow-md">
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-600">
+                {materials.filter(m => !m.is_premium).length}
+              </div>
+              <div className="text-xs text-muted-foreground">Free</div>
             </CardContent>
           </Card>
           <Card className="border-none shadow-md">
@@ -642,84 +735,44 @@ export default function MaterialsManagement() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredMaterials.map((material) => (
-                  <div
-                    key={material.id}
-                    className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                      {/* Thumbnail */}
-                      {material.thumbnail_url && (
-                        <div className="w-full md:w-32 h-24 rounded-lg overflow-hidden shrink-0">
-                          <img 
-                            src={material.thumbnail_url} 
-                            alt={material.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h3 className="font-semibold">{material.title}</h3>
-                          {material.is_premium && (
-                            <Badge variant="default" className="bg-yellow-600">Premium</Badge>
-                          )}
-                          {material.has_hard_copy && (
-                            <Badge variant="default" className="bg-blue-600">Hard Copy</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{material.description}</p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline">
-                            {material.chapter?.subject?.name || 'No Subject'}
-                          </Badge>
-                          <Badge variant="outline">
-                            {material.chapter?.name || 'No Chapter'}
-                          </Badge>
-                          <Badge variant="outline">{material.material_type}</Badge>
-                          {material.file_size && (
-                            <Badge variant="outline">{formatFileSize(material.file_size)}</Badge>
-                          )}
-                          <Badge variant="outline">
-                            {material.download_count || 0} downloads
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(material.file_url, '_blank')}
-                          className="flex-1 md:flex-none tap-target"
-                        >
-                          <Eye size={16} className="md:mr-0 mr-2" />
-                          <span className="md:hidden">View</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(material)}
-                          className="flex-1 md:flex-none tap-target"
-                        >
-                          <Edit size={16} className="md:mr-0 mr-2" />
-                          <span className="md:hidden">Edit</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(material.id, material.file_url)}
-                          className="text-red-600 hover:text-red-700 flex-1 md:flex-none tap-target"
-                        >
-                          <Trash2 size={16} className="md:mr-0 mr-2" />
-                          <span className="md:hidden">Delete</span>
-                        </Button>
-                      </div>
-                    </div>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="all">All ({filteredMaterials.length})</TabsTrigger>
+                  <TabsTrigger value="digital" className="flex items-center gap-1">
+                    <Download className="h-3 w-3" />
+                    Digital ({filteredMaterials.filter(m => m.is_premium && !m.has_hard_copy).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="hardcopy" className="flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    Hard Copy ({filteredMaterials.filter(m => m.has_hard_copy).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="free">Free ({filteredMaterials.filter(m => !m.is_premium).length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="all">
+                  <div className="space-y-4">
+                    {filteredMaterials.map((material) => renderMaterialItem(material))}
                   </div>
-                ))}
-              </div>
+                </TabsContent>
+
+                <TabsContent value="digital">
+                  <div className="space-y-4">
+                    {filteredMaterials.filter(m => m.is_premium && !m.has_hard_copy).map((material) => renderMaterialItem(material))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="hardcopy">
+                  <div className="space-y-4">
+                    {filteredMaterials.filter(m => m.has_hard_copy).map((material) => renderMaterialItem(material))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="free">
+                  <div className="space-y-4">
+                    {filteredMaterials.filter(m => !m.is_premium).map((material) => renderMaterialItem(material))}
+                  </div>
+                </TabsContent>
+              </Tabs>
             )}
           </CardContent>
         </Card>

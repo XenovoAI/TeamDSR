@@ -60,6 +60,7 @@ export default function MaterialDetail() {
     try {
       const res = await fetch(`/api/check-purchase/${user.id}/${material.id}`);
       const data = await res.json();
+      // API only returns true for digital purchases, not physical
       setIsPurchased(data.purchased);
     } catch (err) {}
   };

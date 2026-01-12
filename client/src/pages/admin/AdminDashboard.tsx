@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Atom, Beaker, Dna, Package, Tag } from "lucide-react";
+import { BookOpen, Users, Atom, Beaker, Dna, Package, Tag, Truck } from "lucide-react";
 import { getAdminStats } from "@/lib/queries";
 
 export default function AdminDashboard() {
@@ -101,15 +101,36 @@ export default function AdminDashboard() {
                   <BookOpen size={24} />
                 </div>
                 <CardTitle className="text-lg group-hover:text-[#0B9B9B] transition-colors">
-                  Study Materials
+                  Digital Materials
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Upload and manage NEET study materials - Physics, Chemistry & Biology PDFs, notes, and e-books.
+                  Upload PDFs, notes, and e-books for digital download.
                 </p>
                 <div className="text-xs font-bold text-[#0B9B9B]">
                   {loading ? '...' : stats.totalMaterials} materials
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/hardcopy">
+            <Card className="border-none shadow-lg hover:shadow-xl transition-all cursor-pointer group h-full">
+              <CardHeader className="pb-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform">
+                  <Truck size={24} />
+                </div>
+                <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+                  Hard Copy Products
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Add physical books for shipping. No PDF upload needed.
+                </p>
+                <div className="text-xs font-bold text-blue-600">
+                  Manage products
                 </div>
               </CardContent>
             </Card>

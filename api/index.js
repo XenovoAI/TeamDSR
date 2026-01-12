@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
     // Verify Payment
     if (path.includes('/api/verify-payment') && method === 'POST') {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, materialId, userId, amount, originalAmount, discountAmount, couponId, couponCode, deliveryType, shippingAddress } = req.body;
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, materialId, productId, productType, userId, amount, originalAmount, discountAmount, couponId, couponCode, deliveryType, shippingAddress } = req.body;
       const body = razorpay_order_id + '|' + razorpay_payment_id;
       const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '').update(body).digest('hex');
       if (expectedSignature !== razorpay_signature) {
@@ -92,9 +92,17 @@ export default async function handler(req, res) {
       }
       const { url, key } = getSupabaseConfig();
       const purchaseData = {
-        user_id: userId, material_id: materialId, amount, original_amount: originalAmount || amount,
-        discount_amount: discountAmount || 0, coupon_id: couponId || null, coupon_code: couponCode || null,
-        razorpay_order_id, razorpay_payment_id, razorpay_signature, status: 'completed',
+        user_id: userId, 
+        material_id: materialId || null,
+        product_id: productId || null,
+        product_type: productType || 'digital',
+        amount, 
+        original_amount: originalAmount || amount,
+        discount_amount: discountAmount || 0, 
+        coupon_id: couponId || null, 
+        coupon_code: couponCode || null,
+        razorpay_order_id, razorpay_payment_id, razorpay_signature, 
+        status: 'completed',
         delivery_type: deliveryType || 'digital',
       };
       if (deliveryType === 'physical' && shippingAddress) {
@@ -109,17 +117,21 @@ export default async function handler(req, res) {
       return res.json({ success: true });
     }
 
-    // Check Purchase
+    // Check Purchase (digital only - not physical)
     if (path.includes('/api/check-purchase/') && method === 'GET') {
       const parts = path.split('/');
       const materialId = parts.pop();
       const userId = parts.pop();
       const { url, key } = getSupabaseConfig();
-      const response = await fetch(`${url}/rest/v1/purchases?user_id=eq.${userId}&material_id=eq.${materialId}&status=eq.completed&select=id`, {
+      const response = await fetch(`${url}/rest/v1/purchases?user_id=eq.${userId}&material_id=eq.${materialId}&status=eq.completed&delivery_type=neq.physical&select=id,delivery_type`, {
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
       });
       const data = await response.json();
-      return res.json({ purchased: data && data.length > 0 });
+      const digitalPurchase = data?.find((p) => p.delivery_type !== 'physical');
+      return res.json({ 
+        purchased: !!digitalPurchase,
+        delivery_type: digitalPurchase?.delivery_type || null
+      });
     }
 
     // Get Purchases
