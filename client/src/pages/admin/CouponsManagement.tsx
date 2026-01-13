@@ -40,6 +40,7 @@ interface CouponProduct {
 interface Material {
   id: string;
   title: string;
+  type: 'material' | 'hardcopy';
 }
 
 export default function CouponsManagement() {
@@ -64,6 +65,7 @@ export default function CouponsManagement() {
     usage_limit: '',
     min_purchase_amount: '',
     max_discount_amount: '',
+    applies_to_all: true, // NEW: if false, only applies to specific products
   });
 
   const [productForm, setProductForm] = useState({
@@ -123,17 +125,34 @@ export default function CouponsManagement() {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/study_materials?select=id,title&order=title`,
-        {
+      
+      // Fetch both study materials AND hard copy products
+      const [materialsRes, productsRes] = await Promise.all([
+        fetch(`${supabaseUrl}/rest/v1/study_materials?select=id,title&order=title`, {
           headers: {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
           }
-        }
-      );
-      const data = await response.json();
-      setMaterials(data);
+        }),
+        fetch(`${supabaseUrl}/rest/v1/hard_copy_products?select=id,title&is_active=eq.true&order=title`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          }
+        })
+      ]);
+      
+      const materialsData = await materialsRes.json();
+      const productsData = await productsRes.json();
+      
+      // Combine both with type indicator
+      const allProducts: Material[] = [
+        ...(Array.isArray(materialsData) ? materialsData.map((m: any) => ({ ...m, type: 'material' as const })) : []),
+        ...(Array.isArray(productsData) ? productsData.map((p: any) => ({ ...p, type: 'hardcopy' as const, title: `📦 ${p.title}` })) : []),
+      ];
+      
+      setMaterials(allProducts);
+      console.log('Loaded products:', allProducts.length, '(materials:', materialsData?.length || 0, ', hardcopy:', productsData?.length || 0, ')');
     } catch (error) {
       console.error('Error fetching materials:', error);
     }
@@ -169,7 +188,12 @@ export default function CouponsManagement() {
         method: editingCoupon ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          code: formData.code,
+          description: formData.description,
+          discount_type: formData.discount_type,
+          // If applies_to_all is false, set default_discount_value to 0
+          default_discount_value: formData.applies_to_all ? formData.default_discount_value : 0,
+          is_active: formData.is_active,
           usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
           min_purchase_amount: formData.min_purchase_amount ? parseFloat(formData.min_purchase_amount) : null,
           max_discount_amount: formData.max_discount_amount ? parseFloat(formData.max_discount_amount) : null,
@@ -224,12 +248,18 @@ export default function CouponsManagement() {
       return;
     }
 
+    // Find the selected product to determine its type
+    const selectedProduct = materials.find(m => m.id === productForm.material_id);
+    const isHardCopy = selectedProduct?.type === 'hardcopy';
+
     try {
       const response = await fetch(`/api/admin/coupons/${expandedCoupon}/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          material_id: productForm.material_id,
+          // Send the correct field based on product type
+          material_id: isHardCopy ? null : productForm.material_id,
+          product_id: isHardCopy ? productForm.material_id : null,
           discount_value: parseFloat(productForm.discount_value),
           applies_to: productForm.applies_to,
         }),
@@ -268,12 +298,15 @@ export default function CouponsManagement() {
       usage_limit: '',
       min_purchase_amount: '',
       max_discount_amount: '',
+      applies_to_all: true,
     });
     setEditingCoupon(null);
   };
 
   const openEditModal = (coupon: Coupon) => {
     setEditingCoupon(coupon);
+    // If default_discount_value is 0, it's likely a product-specific coupon
+    const isProductSpecific = coupon.default_discount_value === 0;
     setFormData({
       code: coupon.code,
       description: coupon.description || '',
@@ -285,6 +318,7 @@ export default function CouponsManagement() {
       usage_limit: coupon.usage_limit?.toString() || '',
       min_purchase_amount: coupon.min_purchase_amount?.toString() || '',
       max_discount_amount: coupon.max_discount_amount?.toString() || '',
+      applies_to_all: !isProductSpecific,
     });
     setShowModal(true);
   };
@@ -339,6 +373,11 @@ export default function CouponsManagement() {
                           <Badge variant={coupon.is_active ? "default" : "secondary"}>
                             {coupon.is_active ? 'Active' : 'Inactive'}
                           </Badge>
+                          {coupon.default_discount_value === 0 && (
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                              Product-Specific
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">{coupon.description || 'No description'}</p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -406,10 +445,14 @@ export default function CouponsManagement() {
                                 <SelectTrigger className="h-10">
                                   <SelectValue placeholder="Select product" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                  {materials.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
-                                  ))}
+                                <SelectContent className="z-[100] max-h-60">
+                                  {materials.length === 0 ? (
+                                    <SelectItem value="none" disabled>No products found</SelectItem>
+                                  ) : (
+                                    materials.map((m) => (
+                                      <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                                    ))
+                                  )}
                                 </SelectContent>
                               </Select>
                             </div>
@@ -429,7 +472,7 @@ export default function CouponsManagement() {
                                 <SelectTrigger className="h-10">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="z-[100]">
                                   <SelectItem value="both">Both</SelectItem>
                                   <SelectItem value="digital">Digital</SelectItem>
                                   <SelectItem value="hard_copy">Hard Copy</SelectItem>
@@ -481,6 +524,29 @@ export default function CouponsManagement() {
                     placeholder="e.g., New Year Discount"
                   />
                 </div>
+
+                {/* NEW: Applies to All Products Toggle */}
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium">Apply to All Products</label>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.applies_to_all 
+                          ? "Coupon works on all products" 
+                          : "Coupon only works on specific products you add below"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.applies_to_all}
+                      onCheckedChange={(checked) => setFormData({...formData, applies_to_all: checked})}
+                    />
+                  </div>
+                  {!formData.applies_to_all && (
+                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                      ⚠️ After creating, expand the coupon and add specific products
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -496,13 +562,19 @@ export default function CouponsManagement() {
                     </Select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Default Discount</label>
+                    <label className="text-sm font-medium">
+                      {formData.applies_to_all ? 'Discount Value' : 'Default (for all products)'}
+                    </label>
                     <Input
                       type="number"
                       value={formData.default_discount_value}
                       onChange={(e) => setFormData({...formData, default_discount_value: parseFloat(e.target.value) || 0})}
                       placeholder={formData.discount_type === 'percentage' ? '10' : '100'}
+                      disabled={!formData.applies_to_all}
                     />
+                    {!formData.applies_to_all && (
+                      <p className="text-xs text-muted-foreground mt-1">Set per-product discounts after creating</p>
+                    )}
                   </div>
                 </div>
                 

@@ -93,12 +93,30 @@ export default function HardCopyDetail() {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), materialId: product?.id, deliveryType: 'physical', userId: user?.id }),
+        body: JSON.stringify({ 
+          code: couponCode.trim(), 
+          productId: product?.id, 
+          productType: 'hardcopy',
+          deliveryType: 'physical', 
+          userId: user?.id 
+        }),
       });
       const data = await res.json();
       if (data.valid) {
+        // Check if coupon actually has a discount for this product
+        if (!data.coupon.discount_value || data.coupon.discount_value <= 0) {
+          toast({ title: "Coupon Not Applicable", description: "This coupon doesn't apply to this product", variant: "destructive" });
+          setValidatingCoupon(false);
+          return;
+        }
         setAppliedCoupon(data.coupon);
-        toast({ title: "🎉 Coupon Applied!", description: `You save ₹${calculateDiscount(totalPrice)}` });
+        const discountAmt = data.coupon.discount_type === 'percentage' 
+          ? Math.round((totalPrice * data.coupon.discount_value) / 100)
+          : data.coupon.discount_value;
+        const cappedDiscount = data.coupon.max_discount_amount 
+          ? Math.min(discountAmt, data.coupon.max_discount_amount)
+          : discountAmt;
+        toast({ title: "🎉 Coupon Applied!", description: `You save ₹${Math.min(cappedDiscount, totalPrice - 1)}` });
       } else {
         toast({ title: "Invalid Coupon", description: data.error, variant: "destructive" });
       }
@@ -112,13 +130,24 @@ export default function HardCopyDetail() {
   
   const calculateDiscount = (price: number) => {
     if (!appliedCoupon) return 0;
-    let d = appliedCoupon.discount_type === 'percentage' ? (price * appliedCoupon.discount_value) / 100 : appliedCoupon.discount_value;
-    if (appliedCoupon.max_discount_amount) d = Math.min(d, appliedCoupon.max_discount_amount);
-    return Math.min(d, price);
+    // Check if coupon has a valid discount value
+    const discountValue = appliedCoupon.discount_value || 0;
+    if (discountValue <= 0) return 0;
+    
+    let d = appliedCoupon.discount_type === 'percentage' 
+      ? Math.round((price * discountValue) / 100) 
+      : discountValue;
+    
+    // Cap at max discount if set
+    if (appliedCoupon.max_discount_amount && appliedCoupon.max_discount_amount > 0) {
+      d = Math.min(d, appliedCoupon.max_discount_amount);
+    }
+    // Ensure minimum ₹1 remains after discount
+    return Math.min(d, price - 1);
   };
 
   const discount = calculateDiscount(totalPrice);
-  const finalPrice = totalPrice - discount;
+  const finalPrice = Math.max(totalPrice - discount, 1);
 
   const handleShare = async () => {
     const url = window.location.href;

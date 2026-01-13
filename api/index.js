@@ -147,10 +147,13 @@ export default async function handler(req, res) {
     }
 
 
-    // Validate Coupon
-    if (path.includes('/api/coupons/validate') && method === 'POST') {
-      const { code, materialId, deliveryType, userId } = req.body;
-      if (!code || !materialId) return res.status(400).json({ valid: false, error: 'Missing code or material ID' });
+    // Validate Coupon (for single product)
+    if (path === '/api/coupons/validate' && method === 'POST') {
+      const { code, materialId, productId, productType, deliveryType, userId } = req.body;
+      const itemId = productId || materialId;
+      const isHardCopy = productType === 'hardcopy' || deliveryType === 'physical';
+      
+      if (!code || !itemId) return res.status(400).json({ valid: false, error: 'Missing code or product ID' });
       const { url, key } = getSupabaseConfig();
       if (!url || !key) return res.status(500).json({ valid: false, error: 'Server config error' });
       
@@ -175,20 +178,112 @@ export default async function handler(req, res) {
         if (usageData?.length) return res.json({ valid: false, error: 'Already used this coupon' });
       }
       
-      const productRes = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&material_id=eq.${materialId}&select=*`, {
-        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
-      });
-      const productDiscounts = await productRes.json();
+      // Check for product-specific discount - check BOTH material_id and product_id based on type
+      let productDiscounts = [];
+      if (isHardCopy) {
+        const productRes = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&product_id=eq.${itemId}&select=*`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+        });
+        productDiscounts = await productRes.json();
+      } else {
+        const productRes = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&material_id=eq.${itemId}&select=*`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+        });
+        productDiscounts = await productRes.json();
+      }
+      
       let discountValue = coupon.default_discount_value || 0;
       let appliesTo = 'both';
       if (productDiscounts?.length) {
         discountValue = productDiscounts[0].discount_value;
         appliesTo = productDiscounts[0].applies_to;
       }
-      if (deliveryType && appliesTo !== 'both' && appliesTo !== deliveryType) {
-        return res.json({ valid: false, error: `Only applies to ${appliesTo}` });
+      if (deliveryType && appliesTo !== 'both') {
+        const mappedType = deliveryType === 'physical' ? 'hard_copy' : deliveryType;
+        if (appliesTo !== mappedType) {
+          return res.json({ valid: false, error: `Only applies to ${appliesTo}` });
+        }
       }
-      return res.json({ valid: true, coupon: { id: coupon.id, code: coupon.code, discount_type: coupon.discount_type, discount_value: discountValue, max_discount_amount: coupon.max_discount_amount } });
+      return res.json({ valid: true, coupon: { id: coupon.id, code: coupon.code, discount_type: coupon.discount_type, discount_value: discountValue, max_discount_amount: coupon.max_discount_amount, min_purchase_amount: coupon.min_purchase_amount } });
+    }
+
+    // Validate Coupon for Cart (general validation)
+    if (path.includes('/api/coupons/validate-cart') && method === 'POST') {
+      const { code, cartTotal, userId, items } = req.body;
+      if (!code) return res.status(400).json({ valid: false, error: 'Missing coupon code' });
+      const { url, key } = getSupabaseConfig();
+      if (!url || !key) return res.status(500).json({ valid: false, error: 'Server config error' });
+      
+      const couponRes = await fetch(`${url}/rest/v1/coupons?code=eq.${encodeURIComponent(code.toUpperCase())}&select=*`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      });
+      const coupons = await couponRes.json();
+      if (!coupons?.length) return res.json({ valid: false, error: 'Invalid coupon code' });
+      
+      const coupon = coupons[0];
+      if (!coupon.is_active) return res.json({ valid: false, error: 'Coupon not active' });
+      const now = new Date();
+      if (coupon.start_date && new Date(coupon.start_date) > now) return res.json({ valid: false, error: 'Coupon not yet active' });
+      if (coupon.end_date && new Date(coupon.end_date) < now) return res.json({ valid: false, error: 'Coupon expired' });
+      if (coupon.usage_limit && coupon.times_used >= coupon.usage_limit) return res.json({ valid: false, error: 'Usage limit reached' });
+      if (coupon.min_purchase_amount && cartTotal < coupon.min_purchase_amount) {
+        return res.json({ valid: false, error: `Minimum order amount is ₹${coupon.min_purchase_amount}` });
+      }
+      
+      if (userId) {
+        const usageRes = await fetch(`${url}/rest/v1/coupon_usage?coupon_id=eq.${coupon.id}&user_id=eq.${userId}&select=id`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+        });
+        const usageData = await usageRes.json();
+        if (usageData?.length) return res.json({ valid: false, error: 'Already used this coupon' });
+      }
+      
+      // Calculate applicable discount
+      let applicableDiscount = 0;
+      let discountValue = coupon.default_discount_value || 0;
+      
+      if (discountValue > 0) {
+        // Apply default discount to cart total
+        if (coupon.discount_type === 'percentage') {
+          applicableDiscount = Math.round(cartTotal * discountValue / 100);
+          if (coupon.max_discount_amount) applicableDiscount = Math.min(applicableDiscount, coupon.max_discount_amount);
+        } else {
+          applicableDiscount = discountValue;
+        }
+      } else if (items && items.length > 0) {
+        // Product-specific coupon - check each cart item
+        const cpRes = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&select=*`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+        });
+        const couponProducts = await cpRes.json();
+        
+        if (couponProducts?.length) {
+          for (const item of items) {
+            const isHardCopy = item.type === 'hardcopy';
+            const match = couponProducts.find(cp => isHardCopy ? cp.product_id === item.id : cp.material_id === item.id);
+            if (match) {
+              if (coupon.discount_type === 'percentage') {
+                applicableDiscount += Math.round(item.price * match.discount_value / 100);
+              } else {
+                applicableDiscount += match.discount_value;
+              }
+            }
+          }
+        }
+      }
+      
+      return res.json({ 
+        valid: true, 
+        coupon: { 
+          id: coupon.id, 
+          code: coupon.code, 
+          discount_type: coupon.discount_type, 
+          discount_value: discountValue,
+          applicable_discount: applicableDiscount,
+          max_discount_amount: coupon.max_discount_amount,
+          min_purchase_amount: coupon.min_purchase_amount
+        } 
+      });
     }
 
 
@@ -244,22 +339,34 @@ export default async function handler(req, res) {
       const parts = path.split('/');
       const id = parts[parts.length - 2];
       const { url, key } = getSupabaseConfig();
-      const response = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${id}&select=*,material:study_materials(id,title)`, {
+      const response = await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${id}&select=*,material:study_materials(id,title),product:hard_copy_products(id,title)`, {
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
       });
-      return res.json(await response.json());
+      const data = await response.json();
+      // Normalize to always have material object with title
+      const normalizedData = (data || []).map(item => ({
+        ...item,
+        material: item.material || (item.product ? { id: item.product.id, title: `📦 ${item.product.title}` } : null),
+      }));
+      return res.json(normalizedData);
     }
 
     // Admin Coupon Products - POST
     if (path.match(/\/api\/admin\/coupons\/[^/]+\/products$/) && method === 'POST') {
       const parts = path.split('/');
       const id = parts[parts.length - 2];
-      const { material_id, discount_value, applies_to } = req.body;
+      const { material_id, product_id, discount_value, applies_to } = req.body;
       const { url, key } = getSupabaseConfig();
+      
+      // Build insert data - only include non-null IDs
+      const insertData = { coupon_id: id, discount_value, applies_to: applies_to || 'both' };
+      if (material_id) insertData.material_id = material_id;
+      if (product_id) insertData.product_id = product_id;
+      
       const response = await fetch(`${url}/rest/v1/coupon_products`, {
         method: 'POST',
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify({ coupon_id: id, material_id, discount_value, applies_to: applies_to || 'both' }),
+        body: JSON.stringify(insertData),
       });
       const result = await response.json();
       return res.json(result[0] || result);

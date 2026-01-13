@@ -40,39 +40,71 @@ export default function Cart() {
   const hasPhysicalItems = items.some(i => i.type === 'hardcopy');
   const hasDigitalItems = items.some(i => i.type === 'digital');
 
-  // Calculate discount
+  // Calculate discount - ensure minimum ₹1 total
   let discount = 0;
-  if (appliedCoupon) {
-    if (appliedCoupon.discount_type === 'percentage') {
+  if (appliedCoupon && subtotal > 0) {
+    // Check minimum purchase amount
+    if (appliedCoupon.min_purchase_amount && subtotal < appliedCoupon.min_purchase_amount) {
+      // Don't apply discount if below minimum
+      discount = 0;
+    } else if (appliedCoupon.applicable_discount && appliedCoupon.applicable_discount > 0) {
+      // Use pre-calculated applicable discount for product-specific coupons
+      discount = appliedCoupon.applicable_discount;
+    } else if (appliedCoupon.discount_type === 'percentage') {
       discount = Math.round(subtotal * appliedCoupon.discount_value / 100);
-      if (appliedCoupon.max_discount_amount) {
+      // Cap at max discount amount if set
+      if (appliedCoupon.max_discount_amount && appliedCoupon.max_discount_amount > 0) {
         discount = Math.min(discount, appliedCoupon.max_discount_amount);
       }
     } else {
-      discount = appliedCoupon.discount_value;
+      // Fixed amount discount
+      discount = appliedCoupon.discount_value || 0;
     }
+    // Ensure discount doesn't exceed subtotal - 1 (minimum ₹1 payment)
+    discount = Math.min(discount, subtotal - 1);
+    discount = Math.max(discount, 0); // No negative discount
   }
-  const total = Math.max(subtotal - discount, 0);
+  const total = Math.max(subtotal - discount, 1); // Minimum ₹1
 
   const validateCoupon = async () => {
     if (!couponCode.trim()) return;
+    if (items.length === 0) {
+      toast({ title: "Cart Empty", description: "Add items to cart first", variant: "destructive" });
+      return;
+    }
     setValidatingCoupon(true);
     try {
-      // Validate coupon (use first item's ID for validation)
-      const firstItem = items[0];
-      const res = await fetch('/api/coupons/validate', {
+      // For cart, we need to check if coupon applies to any of the items
+      // First get the coupon details
+      const res = await fetch('/api/coupons/validate-cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: couponCode,
-          materialId: firstItem?.id,
-          userId: user?.id
+          cartTotal: subtotal,
+          userId: user?.id,
+          // Send cart items so server can check product-specific discounts
+          items: items.map(i => ({ id: i.id, type: i.type, price: i.price * i.quantity }))
         })
       });
       const data = await res.json();
       if (data.valid) {
+        // Check if coupon has any discount value
+        if (!data.coupon.discount_value || data.coupon.discount_value <= 0) {
+          // This is a product-specific coupon - check if any cart items match
+          if (!data.coupon.applicable_discount || data.coupon.applicable_discount <= 0) {
+            toast({ title: "Coupon Not Applicable", description: "This coupon doesn't apply to items in your cart", variant: "destructive" });
+            setValidatingCoupon(false);
+            return;
+          }
+        }
         setAppliedCoupon(data.coupon);
-        toast({ title: "Coupon Applied!", description: `${data.coupon.discount_type === 'percentage' ? data.coupon.discount_value + '%' : '₹' + data.coupon.discount_value} off` });
+        const discountAmt = data.coupon.applicable_discount || (
+          data.coupon.discount_type === 'percentage' 
+            ? Math.round(subtotal * data.coupon.discount_value / 100)
+            : data.coupon.discount_value
+        );
+        toast({ title: "Coupon Applied!", description: `₹${Math.min(discountAmt, subtotal - 1)} off` });
       } else {
         toast({ title: "Invalid Coupon", description: data.error, variant: "destructive" });
       }

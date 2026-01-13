@@ -171,22 +171,41 @@ export default function HardCopyManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product?')) return;
+    if (!confirm('Delete this product? (It will be hidden from the store)')) return;
     try {
+      // Soft delete - set is_active to false instead of deleting
+      // This avoids foreign key conflicts with purchases
       const response = await fetch(`${supabaseUrl}/rest/v1/hard_copy_products?id=eq.${id}`, {
-        method: 'DELETE',
-        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        method: 'PATCH',
+        headers: { 
+          'apikey': supabaseKey, 
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: false }),
       });
       if (!response.ok) {
-        throw new Error('Delete failed');
+        // If soft delete fails (column doesn't exist), try hard delete
+        const deleteRes = await fetch(`${supabaseUrl}/rest/v1/hard_copy_products?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        });
+        if (!deleteRes.ok) {
+          const err = await deleteRes.text();
+          if (err.includes('violates foreign key') || deleteRes.status === 409) {
+            toast({ title: "Cannot delete", description: "This product has orders. It has been hidden instead.", variant: "destructive" });
+          } else {
+            throw new Error('Delete failed');
+          }
+        }
       }
       // Update local state immediately
       setProducts(prev => prev.filter(p => p.id !== id));
       setFilteredProducts(prev => prev.filter(p => p.id !== id));
-      toast({ title: "Deleted!" });
+      toast({ title: "Product removed!" });
     } catch (error) {
       console.error('Delete error:', error);
-      toast({ title: "Error deleting product", variant: "destructive" });
+      toast({ title: "Error", description: "Cannot delete - product has orders", variant: "destructive" });
     }
   };
 

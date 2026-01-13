@@ -104,8 +104,8 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white">Email Us</h3>
-                  <a href="mailto:support@neetpeak.com" className="text-white/80 text-sm hover:text-white">
-                    support@neetpeak.com
+                  <a href="mailto:help.neetpeak@gmail.com" className="text-white/80 text-sm hover:text-white">
+                    help.neetpeak@gmail.com
                   </a>
                 </div>
               </CardContent>
@@ -117,9 +117,9 @@ export default function Contact() {
                   <Phone className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">Call Us</h3>
-                  <a href="tel:+917891858821" className="text-white/80 text-sm hover:text-white">
-                    +91 78918 58821
+                  <h3 className="font-bold text-white">Call / WhatsApp</h3>
+                  <a href="https://wa.me/918696873558" target="_blank" rel="noopener noreferrer" className="text-white/80 text-sm hover:text-white">
+                    +91 8696873558
                   </a>
                 </div>
               </CardContent>

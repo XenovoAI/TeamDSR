@@ -65,7 +65,7 @@ export default function Navbar() {
             </Button>
           </Link>
           <a 
-            href="https://play.google.com/store/apps/details?id=com.neetpeak" 
+            href="https://play.google.com/store/apps/details?id=com.sm.neet" 
             target="_blank" 
             rel="noopener noreferrer"
           >
@@ -144,7 +144,7 @@ export default function Navbar() {
           </Link>
           <div className="h-px bg-gray-200 my-2" />
           <a 
-            href="https://play.google.com/store/apps/details?id=com.neetpeak" 
+            href="https://play.google.com/store/apps/details?id=com.sm.neet" 
             target="_blank" 
             rel="noopener noreferrer"
             onClick={() => setIsOpen(false)}
@@ -167,6 +167,12 @@ export default function Navbar() {
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
+              <Link href="/dashboard" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                <User className="h-4 w-4" /> Dashboard
+              </Link>
+              <Link href="/profile" className="text-base font-medium text-gray-700 p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                <User className="h-4 w-4" /> My Profile
+              </Link>
               <Button 
                 variant="outline" 
                 className="w-full text-red-600 border-red-200 hover:bg-red-50 rounded-full h-11 font-semibold"

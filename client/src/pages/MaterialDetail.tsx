@@ -80,6 +80,12 @@ export default function MaterialDetail() {
       if (!contentType?.includes('application/json')) { toast({ title: "Server Error", variant: "destructive" }); return; }
       const data = await res.json();
       if (data.valid) {
+        // Check if coupon actually has a discount for this product
+        if (!data.coupon.discount_value || data.coupon.discount_value <= 0) {
+          toast({ title: "Coupon Not Applicable", description: "This coupon doesn't apply to this product", variant: "destructive" });
+          setValidatingCoupon(false);
+          return;
+        }
         setAppliedCoupon(data.coupon);
         toast({ title: "🎉 Coupon Applied!", description: `You save ₹${calculateDiscountAmount(data.coupon)}` });
       } else {
@@ -91,19 +97,29 @@ export default function MaterialDetail() {
 
   const calculateDiscountAmount = (coupon: any) => {
     const basePrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
-    if (!coupon) return 0;
-    let d = coupon.discount_type === 'percentage' ? (basePrice * coupon.discount_value) / 100 : coupon.discount_value;
-    if (coupon.discount_type === 'percentage' && coupon.max_discount_amount) d = Math.min(d, coupon.max_discount_amount);
-    return Math.min(d, basePrice);
+    if (!coupon || !coupon.discount_value || coupon.discount_value <= 0) return 0;
+    let d = coupon.discount_type === 'percentage' 
+      ? Math.round((basePrice * coupon.discount_value) / 100) 
+      : coupon.discount_value;
+    if (coupon.max_discount_amount && coupon.max_discount_amount > 0) {
+      d = Math.min(d, coupon.max_discount_amount);
+    }
+    // Ensure minimum ₹1 remains
+    return Math.min(d, basePrice - 1);
   };
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponCode(''); };
 
   const calculateDiscount = (price: number) => {
-    if (!appliedCoupon) return 0;
-    let d = appliedCoupon.discount_type === 'percentage' ? (price * appliedCoupon.discount_value) / 100 : appliedCoupon.discount_value;
-    if (appliedCoupon.discount_type === 'percentage' && appliedCoupon.max_discount_amount) d = Math.min(d, appliedCoupon.max_discount_amount);
-    return Math.min(d, price);
+    if (!appliedCoupon || !appliedCoupon.discount_value || appliedCoupon.discount_value <= 0) return 0;
+    let d = appliedCoupon.discount_type === 'percentage' 
+      ? Math.round((price * appliedCoupon.discount_value) / 100) 
+      : appliedCoupon.discount_value;
+    if (appliedCoupon.max_discount_amount && appliedCoupon.max_discount_amount > 0) {
+      d = Math.min(d, appliedCoupon.max_discount_amount);
+    }
+    // Ensure minimum ₹1 remains
+    return Math.min(d, price - 1);
   };
 
   const openCheckout = (type: 'digital' | 'physical') => {
@@ -229,11 +245,11 @@ export default function MaterialDetail() {
   const hardCopyTotal = (material?.hard_copy_price || 0) + (material?.shipping_cost || 0);
   const currentPrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
   const discount = calculateDiscount(currentPrice);
-  const finalPrice = currentPrice - discount;
+  const finalPrice = Math.max(currentPrice - discount, 1);
   const digitalDiscount = calculateDiscount(material?.price || 0);
-  const digitalFinalPrice = (material?.price || 0) - digitalDiscount;
+  const digitalFinalPrice = Math.max((material?.price || 0) - digitalDiscount, 1);
   const hardCopyDiscount = calculateDiscount(hardCopyTotal);
-  const hardCopyFinalPrice = hardCopyTotal - hardCopyDiscount;
+  const hardCopyFinalPrice = Math.max(hardCopyTotal - hardCopyDiscount, 1);
 
   if (loading) return (
     <div className="min-h-screen bg-white"><Navbar />
