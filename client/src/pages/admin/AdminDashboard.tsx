@@ -52,7 +52,9 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
+    todayRevenue: 0,
     totalOrders: 0,
+    todayOrders: 0,
     digitalSales: 0,
     physicalSales: 0,
     pendingOrders: 0,
@@ -108,7 +110,15 @@ export default function AdminDashboard() {
         setPurchases(purchasesData);
         
         // Calculate stats
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
         const totalRevenue = purchasesData.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const todayRevenue = purchasesData
+          .filter(p => new Date(p.created_at) >= today)
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+        const todayOrders = purchasesData.filter(p => new Date(p.created_at) >= today).length;
+        
         const totalDiscountGiven = purchasesData.reduce((sum, p) => sum + (p.discount_amount || 0), 0);
         const digitalSales = purchasesData.filter(p => p.delivery_type !== 'physical').reduce((sum, p) => sum + (p.amount || 0), 0);
         const physicalSales = purchasesData.filter(p => p.delivery_type === 'physical').reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -131,13 +141,14 @@ export default function AdminDashboard() {
         setMonthlyData(months.map(m => ({ month: m, ...monthlyMap.get(m)! })));
         
         // Calculate growth (compare this month vs last month)
-        const now = new Date();
         const thisMonth = purchasesData.filter(p => new Date(p.created_at).getMonth() === now.getMonth()).reduce((sum, p) => sum + (p.amount || 0), 0);
         const lastMonth = purchasesData.filter(p => new Date(p.created_at).getMonth() === now.getMonth() - 1).reduce((sum, p) => sum + (p.amount || 0), 0);
         const growth = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth * 100) : 0;
 
         setStats({
           totalRevenue,
+          todayRevenue,
+          todayOrders,
           totalOrders: purchasesData.length,
           digitalSales,
           physicalSales,
@@ -250,7 +261,7 @@ export default function AdminDashboard() {
           ) : (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 {/* Revenue Card */}
                 <Card className={`border-none shadow-lg overflow-hidden ${darkMode ? 'bg-gradient-to-br from-emerald-600 to-emerald-700' : 'bg-gradient-to-br from-[#0B9B9B] to-[#1B5E5E]'}`}>
                   <CardContent className="p-6 text-white">
@@ -265,6 +276,23 @@ export default function AdminDashboard() {
                         {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth}%
                       </span>
                       <span className="text-emerald-200">vs last month</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Today's Revenue Card */}
+                <Card className={`border-none shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Today's Revenue</span>
+                      <div className={`p-2 rounded-lg ${darkMode ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                        <Calendar className="h-5 w-5 text-green-500" />
+                      </div>
+                    </div>
+                    <div className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{stats.todayRevenue.toLocaleString()}</div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-green-500 font-medium">{stats.todayOrders}</span>
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>orders today</span>
                     </div>
                   </CardContent>
                 </Card>
