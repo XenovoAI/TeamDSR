@@ -966,8 +966,9 @@ export async function registerRoutes(
       const supabaseUrl = SUPABASE_URL;
       const supabaseKey = SUPABASE_SERVICE_KEY;
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
+      // First delete related coupon_products (CASCADE should handle this, but let's be explicit)
+      await fetch(
+        `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -977,14 +978,29 @@ export async function registerRoutes(
         }
       );
 
+      // Then delete the coupon
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Prefer': 'return=minimal',
+          },
+        }
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to delete coupon');
+        const errorText = await response.text();
+        console.error('Delete coupon error:', errorText);
+        throw new Error('Failed to delete coupon. It may be in use by existing orders.');
       }
 
-      res.json({ success: true });
+      res.json({ success: true, message: 'Coupon deleted successfully' });
     } catch (error: any) {
       console.error('Error deleting coupon:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message || 'Failed to delete coupon' });
     }
   });
 

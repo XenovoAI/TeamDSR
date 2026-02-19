@@ -6,7 +6,8 @@ import {
   signInWithEmail, 
   signUpWithEmail, 
   signOut,
-  getUserProfile, 
+  getUserProfile,
+  upsertUserProfile,
   UserProfile 
 } from '@/lib/supabase';
 
@@ -40,11 +41,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile from database
-  const fetchUserProfile = async (userId: string) => {
+  // Fetch user profile from database and create if doesn't exist
+  const fetchUserProfile = async (currentUser: User) => {
     try {
-      console.log('🔍 Fetching profile for user:', userId);
-      const profile = await getUserProfile(userId);
+      console.log('🔍 Fetching profile for user:', currentUser.id);
+      
+      // First try to get existing profile
+      let profile = await getUserProfile(currentUser.id);
+      
+      // If profile doesn't exist, create it
+      if (!profile) {
+        console.log('📝 Creating new user profile...');
+        await upsertUserProfile({
+          id: currentUser.id,
+          email: currentUser.email || '',
+          name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
+          avatar_url: currentUser.user_metadata?.avatar_url || null,
+        });
+        
+        // Fetch the newly created profile
+        profile = await getUserProfile(currentUser.id);
+      }
+      
       console.log('👤 Profile result:', profile);
       setUserProfile(profile);
       return profile;
@@ -57,7 +75,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Refresh user profile
   const refreshUserProfile = async () => {
     if (user) {
-      await fetchUserProfile(user.id);
+      await fetchUserProfile(user);
     }
   };
 
@@ -83,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(currentUser);
         
         if (currentUser) {
-          await fetchUserProfile(currentUser.id);
+          await fetchUserProfile(currentUser);
         }
         
         setLoading(false);
@@ -115,7 +133,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(currentUser);
       
       if (currentUser) {
-        await fetchUserProfile(currentUser.id);
+        await fetchUserProfile(currentUser);
       } else {
         setUserProfile(null);
       }

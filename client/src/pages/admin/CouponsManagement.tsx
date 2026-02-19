@@ -214,16 +214,25 @@ export default function CouponsManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    if (!confirm('Are you sure you want to delete this coupon? This will also delete all related product discounts.')) return;
 
     try {
       const response = await fetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete coupon');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete coupon' }));
+        throw new Error(errorData.error || 'Failed to delete coupon');
+      }
       
       toast({ title: "Success", description: "Coupon deleted successfully" });
       fetchCoupons();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error('Delete error:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete coupon. It may be in use.", 
+        variant: "destructive" 
+      });
     }
   };
 
