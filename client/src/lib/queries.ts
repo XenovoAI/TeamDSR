@@ -45,7 +45,19 @@ const getCount = async (table: string, filter?: string): Promise<number> => {
 // ============================================
 
 export const getAllUsers = async () => {
-  return fetchSupabase('users?order=created_at.desc');
+  const response = await fetch(`${supabaseUrl}/rest/v1/users?order=created_at.desc`, {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Range': '0-999', // Fetch up to 1000 users
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch users: ${response.status}`);
+  }
+  
+  return response.json();
 };
 
 // ============================================
