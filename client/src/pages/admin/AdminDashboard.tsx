@@ -13,8 +13,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ezcoqsyzchjijbwwnhfn.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y29xc3l6Y2hqaWpid3duaGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODQxNTQsImV4cCI6MjA4MDc2MDE1NH0.Uig4RSmHuaG_KKluQWM9DXEAUBNQA_g2upsDeOXt3uk';
 
 interface Purchase {
   id: string;
@@ -61,6 +61,10 @@ export default function AdminDashboard() {
     newUsersThisMonth: 0,
     avgOrderValue: 0,
     revenueGrowth: 0,
+    totalCoupons: 0,
+    activeCoupons: 0,
+    totalDiscountGiven: 0,
+    couponUsageCount: 0,
   });
   const [monthlyData, setMonthlyData] = useState<{month: string; revenue: number; orders: number}[]>([]);
 
@@ -88,20 +92,29 @@ export default function AdminDashboard() {
       
       // Fetch all users
       const usersRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?select=*&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`,
         { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
       );
       const usersData = await usersRes.json();
+
+      // Fetch coupon analytics
+      const couponsRes = await fetch(
+        `${supabaseUrl}/rest/v1/coupons?select=*`,
+        { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
+      );
+      const couponsData = await couponsRes.json();
 
       if (Array.isArray(purchasesData)) {
         setPurchases(purchasesData);
         
         // Calculate stats
         const totalRevenue = purchasesData.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const totalDiscountGiven = purchasesData.reduce((sum, p) => sum + (p.discount_amount || 0), 0);
         const digitalSales = purchasesData.filter(p => p.delivery_type !== 'physical').reduce((sum, p) => sum + (p.amount || 0), 0);
         const physicalSales = purchasesData.filter(p => p.delivery_type === 'physical').reduce((sum, p) => sum + (p.amount || 0), 0);
         const pendingOrders = purchasesData.filter(p => p.delivery_type === 'physical' && p.delivery_status === 'pending').length;
         const completedOrders = purchasesData.filter(p => p.delivery_status === 'delivered' || p.delivery_type !== 'physical').length;
+        const couponUsageCount = purchasesData.filter(p => p.coupon_id).length;
         
         // Calculate monthly data
         const monthlyMap = new Map<string, {revenue: number; orders: number}>();
@@ -124,8 +137,7 @@ export default function AdminDashboard() {
         const growth = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth * 100) : 0;
 
         setStats({
-     
-       totalRevenue,
+          totalRevenue,
           totalOrders: purchasesData.length,
           digitalSales,
           physicalSales,
@@ -135,6 +147,10 @@ export default function AdminDashboard() {
           newUsersThisMonth: Array.isArray(usersData) ? usersData.filter(u => new Date(u.created_at).getMonth() === now.getMonth()).length : 0,
           avgOrderValue: purchasesData.length > 0 ? Math.round(totalRevenue / purchasesData.length) : 0,
           revenueGrowth: Math.round(growth),
+          totalCoupons: Array.isArray(couponsData) ? couponsData.length : 0,
+          activeCoupons: Array.isArray(couponsData) ? couponsData.filter(c => c.is_active).length : 0,
+          totalDiscountGiven,
+          couponUsageCount,
         });
       }
 
@@ -239,8 +255,8 @@ export default function AdminDashboard() {
                 <Card className={`border-none shadow-lg overflow-hidden ${darkMode ? 'bg-gradient-to-br from-emerald-600 to-emerald-700' : 'bg-gradient-to-br from-[#0B9B9B] to-[#1B5E5E]'}`}>
                   <CardContent className="p-6 text-white">
                     <div className="flex justify-between items-start mb-4">
-                      <span className="text-emerald-100 text-sm font-medium">Revenue</span>
-                      <ArrowUpRight className="h-5 w-5 text-emerald-200" />
+                      <span className="text-emerald-100 text-sm font-medium">Total Revenue</span>
+                      <IndianRupee className="h-5 w-5 text-emerald-200" />
                     </div>
                     <div className="text-3xl font-bold mb-2">₹{stats.totalRevenue.toLocaleString()}</div>
                     <div className="flex items-center gap-2 text-sm">
@@ -274,19 +290,21 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Pending Orders Card */}
+                {/* Coupon Stats Card */}
                 <Card className={`border-none shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Pending Shipments</span>
-                      <div className={`p-2 rounded-lg ${darkMode ? 'bg-yellow-900/30' : 'bg-yellow-50'}`}>
-                        <Truck className="h-5 w-5 text-yellow-500" />
+                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Coupon Discounts</span>
+                      <div className={`p-2 rounded-lg ${darkMode ? 'bg-orange-900/30' : 'bg-orange-50'}`}>
+                        <Tag className="h-5 w-5 text-orange-500" />
                       </div>
                     </div>
-                    <div className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{stats.pendingOrders}</div>
-                    <Link href="/admin/orders">
-                      <span className="text-sm text-[#0B9B9B] hover:underline cursor-pointer">View all orders →</span>
-                    </Link>
+                    <div className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{stats.totalDiscountGiven.toLocaleString()}</div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-orange-500 font-medium">{stats.couponUsageCount}</span>
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>coupons used</span>
+                      <span className="text-green-500 font-medium">({stats.activeCoupons} active)</span>
+                    </div>
                   </CardContent>
                 </Card>
 

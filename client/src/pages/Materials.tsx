@@ -96,24 +96,27 @@ export default function Materials() {
     setError(null);
     
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ezcoqsyzchjijbwwnhfn.supabase.co';
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y29xc3l6Y2hqaWpid3duaGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODQxNTQsImV4cCI6MjA4MDc2MDE1NH0.Uig4RSmHuaG_KKluQWM9DXEAUBNQA_g2upsDeOXt3uk';
+      
       // Fetch digital materials
       const materialsRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/study_materials?select=*,chapter:chapters(*,subject:subjects(*))&is_active=eq.true&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/study_materials?select=*,chapter:chapters(*,subject:subjects(*))&is_active=eq.true&order=created_at.desc`,
         {
           headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
           }
         }
       );
       
       // Fetch hard copy products
       const hardCopyRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/hard_copy_products?select=*,subject:subjects(id,name)&is_active=eq.true&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/hard_copy_products?select=*,subject:subjects(id,name)&is_active=eq.true&order=created_at.desc`,
         {
           headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
           }
         }
       );

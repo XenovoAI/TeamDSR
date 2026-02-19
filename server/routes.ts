@@ -3,13 +3,19 @@ import { type Server } from "http";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
+// Environment variable constants with fallbacks
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://ezcoqsyzchjijbwwnhfn.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y29xc3l6Y2hqaWpid3duaGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODQxNTQsImV4cCI6MjA4MDc2MDE1NH0.Uig4RSmHuaG_KKluQWM9DXEAUBNQA_g2upsDeOXt3uk';
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_live_7JdZWjXegoBT1F';
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '8XpB6yn9vRXCTWo3EgFDmVRW';
+
 // Initialize Razorpay lazily
 let razorpay: Razorpay | null = null;
 
 const getRazorpay = () => {
   if (!razorpay) {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = RAZORPAY_KEY_ID;
+    const keySecret = RAZORPAY_KEY_SECRET;
     
     if (!keyId || !keySecret) {
       throw new Error('Razorpay keys not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env');
@@ -157,8 +163,8 @@ export async function registerRoutes(
 
       if (isAuthentic) {
         // Payment verified - save to database via Supabase REST API
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = SUPABASE_URL;
+        const supabaseKey = SUPABASE_SERVICE_KEY;
 
         const purchaseData: any = {
           user_id: userId || null,
@@ -195,36 +201,17 @@ export async function registerRoutes(
           body: JSON.stringify(purchaseData),
         });
 
+        const purchaseResult = await response.json();
+        const purchaseId = purchaseResult && purchaseResult[0]?.id;
+
         if (!response.ok) {
           const error = await response.text();
           console.error('Error saving purchase:', error);
         }
 
         // Update coupon usage if coupon was used
-        if (couponId) {
-          // Increment times_used
-          await fetch(`${supabaseUrl}/rest/v1/rpc/increment_coupon_usage`, {
-            method: 'POST',
-            headers: {
-              'apikey': supabaseKey!,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ coupon_id: couponId }),
-          }).catch(() => {
-            // Fallback: direct update
-            fetch(`${supabaseUrl}/rest/v1/coupons?id=eq.${couponId}`, {
-              method: 'PATCH',
-              headers: {
-                'apikey': supabaseKey!,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ times_used: 1 }), // Will be incremented by trigger or manually
-            });
-          });
-
-          // Record coupon usage
+        if (couponId && userId && purchaseId) {
+          // Record coupon usage with purchase link
           await fetch(`${supabaseUrl}/rest/v1/coupon_usage`, {
             method: 'POST',
             headers: {
@@ -235,6 +222,7 @@ export async function registerRoutes(
             body: JSON.stringify({
               coupon_id: couponId,
               user_id: userId,
+              purchase_id: purchaseId,
               discount_applied: discountAmount || 0,
             }),
           });
@@ -255,8 +243,8 @@ export async function registerRoutes(
     try {
       const { userId, materialId } = req.params;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Only check for digital purchases (not physical/hard copy)
       const response = await fetch(
@@ -286,8 +274,8 @@ export async function registerRoutes(
     try {
       const { userId } = req.params;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/purchases?user_id=eq.${userId}&status=eq.completed&select=*,material:study_materials(id,title,slug,file_url,thumbnail_url,material_type)&order=created_at.desc`,
@@ -313,8 +301,8 @@ export async function registerRoutes(
       const { orderId } = req.params;
       const { delivery_status, tracking_number, admin_notes } = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const updateData: any = {
         delivery_status,
@@ -363,8 +351,8 @@ export async function registerRoutes(
     try {
       const { orderId } = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Fetch order details with both material and product relations
       const orderRes = await fetch(
@@ -490,8 +478,8 @@ export async function registerRoutes(
     try {
       const { orderId, courier_id } = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Get order's shipment ID
       const orderRes = await fetch(
@@ -581,8 +569,8 @@ export async function registerRoutes(
         return res.status(400).json({ valid: false, error: 'Missing coupon code or product ID' });
       }
 
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
 
@@ -731,8 +719,8 @@ export async function registerRoutes(
         return res.status(400).json({ valid: false, error: 'Missing coupon code' });
       }
 
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Fetch coupon by code
       const couponRes = await fetch(
@@ -863,8 +851,8 @@ export async function registerRoutes(
   // Get all coupons (admin)
   app.get('/api/admin/coupons', async (req: Request, res: Response) => {
     try {
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/coupons?select=*&order=created_at.desc`,
@@ -889,8 +877,8 @@ export async function registerRoutes(
     try {
       const couponData = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Create coupon
       const response = await fetch(
@@ -937,8 +925,8 @@ export async function registerRoutes(
       const { id } = req.params;
       const couponData = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
@@ -975,8 +963,8 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/coupons?id=eq.${id}`,
@@ -1005,8 +993,8 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Fetch coupon products with both material and hard copy product relations
       const response = await fetch(
@@ -1040,8 +1028,8 @@ export async function registerRoutes(
       const { id } = req.params;
       const { material_id, product_id, discount_value, applies_to } = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Build the data object - only include non-null IDs
       const insertData: any = {
@@ -1089,8 +1077,8 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/coupon_products?id=eq.${id}`,
@@ -1119,8 +1107,8 @@ export async function registerRoutes(
     try {
       const { orderId } = req.body;
       
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Get Shiprocket order IDs
       const orderRes = await fetch(
@@ -1221,8 +1209,11 @@ export async function registerRoutes(
         return res.status(400).json({ success: false, message: 'Payment verification failed' });
       }
 
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
+
+      // Store purchase IDs for coupon tracking
+      const purchaseIds: string[] = [];
 
       // Create purchase record for each item
       for (const item of items) {
@@ -1249,19 +1240,25 @@ export async function registerRoutes(
           purchaseData.delivery_status = 'pending';
         }
 
-        await fetch(`${supabaseUrl}/rest/v1/purchases`, {
+        const purchaseResponse = await fetch(`${supabaseUrl}/rest/v1/purchases`, {
           method: 'POST',
           headers: {
             'apikey': supabaseKey!,
             'Authorization': `Bearer ${supabaseKey}`,
             'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
           },
           body: JSON.stringify(purchaseData),
         });
+
+        const purchaseResult = await purchaseResponse.json();
+        if (purchaseResult && purchaseResult[0]?.id) {
+          purchaseIds.push(purchaseResult[0].id);
+        }
       }
 
-      // Update coupon usage if used
-      if (couponId && userId) {
+      // Update coupon usage if used - link to first purchase
+      if (couponId && userId && purchaseIds.length > 0) {
         await fetch(`${supabaseUrl}/rest/v1/coupon_usage`, {
           method: 'POST',
           headers: {
@@ -1272,6 +1269,7 @@ export async function registerRoutes(
           body: JSON.stringify({
             coupon_id: couponId,
             user_id: userId,
+            purchase_id: purchaseIds[0], // Link to first purchase in the order
             discount_applied: discountAmount || 0,
           }),
         });

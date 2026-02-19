@@ -36,11 +36,13 @@ export default function Navbar() {
   return (
     <nav className="fixed top-4 left-0 right-0 z-50 px-4 md:px-8">
       <div className="container mx-auto bg-white rounded-full shadow-lg border border-gray-200 px-6 md:px-8 h-16 flex items-center justify-between">
-        {/* Logo - Simple text style like Exam Fusion */}
+        {/* Logo */}
         <Link href="/" className="flex items-center">
-          <span className="font-heading font-extrabold text-2xl md:text-3xl text-[#0B9B9B]">
-            NEETPeak
-          </span>
+          <img 
+            src="/logo.svg" 
+            alt="NEETPeak" 
+            className="h-8 md:h-10 w-auto"
+          />
         </Link>
 
         {/* Desktop Nav */}

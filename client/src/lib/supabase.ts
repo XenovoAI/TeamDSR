@@ -1,13 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Supabase configuration with fallback
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ezcoqsyzchjijbwwnhfn.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y29xc3l6Y2hqaWpid3duaGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODQxNTQsImV4cCI6MjA4MDc2MDE1NH0.Uig4RSmHuaG_KKluQWM9DXEAUBNQA_g2upsDeOXt3uk';
 
 // Log configuration (without exposing full key)
 console.log('🔧 Supabase Config:', {
   url: supabaseUrl,
-  keyPrefix: supabaseAnonKey?.substring(0, 20) + '...'
+  keyPrefix: supabaseAnonKey?.substring(0, 20) + '...',
+  fromEnv: !!import.meta.env.VITE_SUPABASE_URL
 });
 
 if (!supabaseUrl || !supabaseAnonKey) {
