@@ -244,6 +244,16 @@ export async function registerRoutes(
         const supabaseUrl = SUPABASE_URL;
         const supabaseKey = SUPABASE_SERVICE_KEY;
 
+        const existingPurchases = await fetchSupabaseJson<any[]>(
+          `${supabaseUrl}/rest/v1/purchases?razorpay_payment_id=eq.${encodeURIComponent(razorpay_payment_id)}&select=id&limit=1`,
+          supabaseKey!,
+          'Existing payment lookup',
+          []
+        );
+        if (existingPurchases.length > 0) {
+          return res.json({ success: true, message: 'Payment already verified' });
+        }
+
         const purchaseData: any = {
           user_id: userId || null,
           guest_email: guestEmail || null,
@@ -285,6 +295,7 @@ export async function registerRoutes(
 
         if (!response.ok) {
           console.error('Error saving purchase:', responseText);
+          throw new Error('Failed to save purchase after payment verification');
         }
 
         // Update coupon usage if coupon was used
@@ -913,8 +924,40 @@ export async function registerRoutes(
         }
       );
 
-      const data = await response.json();
-      res.json(data);
+      const coupons = await response.json();
+
+      const purchases = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/purchases?status=eq.completed&coupon_id=not.is.null&select=coupon_id,discount_amount,razorpay_order_id,id`,
+        supabaseKey!,
+        'Coupon sales lookup',
+        []
+      );
+
+      const salesByCoupon = new Map<string, { orderIds: Set<string>; total: number }>();
+      for (const p of purchases) {
+        const couponId = p?.coupon_id as string | undefined;
+        if (!couponId) continue;
+        const prev = salesByCoupon.get(couponId) || { orderIds: new Set<string>(), total: 0 };
+        const orderKey = String(p?.razorpay_order_id || p?.id || '');
+        if (orderKey) {
+          prev.orderIds.add(orderKey);
+        }
+        salesByCoupon.set(couponId, {
+          orderIds: prev.orderIds,
+          total: prev.total + Number(p?.discount_amount || 0),
+        });
+      }
+
+      const enrichedCoupons = (coupons || []).map((c: any) => {
+        const sales = salesByCoupon.get(c.id) || { orderIds: new Set<string>(), total: 0 };
+        return {
+          ...c,
+          paid_usage_count: sales.orderIds.size,
+          paid_discount_total: sales.total,
+        };
+      });
+
+      res.json(enrichedCoupons);
     } catch (error: any) {
       console.error('Error fetching coupons:', error);
       res.status(500).json({ error: error.message });
@@ -1015,8 +1058,47 @@ export async function registerRoutes(
       const supabaseUrl = SUPABASE_URL;
       const supabaseKey = SUPABASE_SERVICE_KEY;
 
+      const existingCoupon = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}&select=id&limit=1`,
+        supabaseKey!,
+        'Coupon existence check',
+        []
+      );
+      if (!existingCoupon.length) {
+        return res.status(404).json({ success: false, error: 'Coupon not found' });
+      }
+
       // First delete related coupon_products (CASCADE should handle this, but let's be explicit)
+      const clearPurchasesRes = await fetch(
+        `${supabaseUrl}/rest/v1/purchases?coupon_id=eq.${id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ coupon_id: null }),
+        }
+      );
+      if (!clearPurchasesRes.ok) {
+        const errorText = await clearPurchasesRes.text();
+        console.error('Clear purchases coupon_id error:', errorText);
+        throw new Error('Failed to detach coupon from existing purchases');
+      }
+
       await fetch(
+        `${supabaseUrl}/rest/v1/coupon_usage?coupon_id=eq.${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      const deleteProductsRes = await fetch(
         `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${id}`,
         {
           method: 'DELETE',
@@ -1026,6 +1108,10 @@ export async function registerRoutes(
           },
         }
       );
+      if (!deleteProductsRes.ok) {
+        const errorText = await deleteProductsRes.text();
+        console.error('Delete coupon_products error:', errorText);
+      }
 
       // Then delete the coupon
       const response = await fetch(
@@ -1044,6 +1130,16 @@ export async function registerRoutes(
         const errorText = await response.text();
         console.error('Delete coupon error:', errorText);
         throw new Error('Failed to delete coupon. It may be in use by existing orders.');
+      }
+
+      const stillExists = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${id}&select=id&limit=1`,
+        supabaseKey!,
+        'Coupon delete verification',
+        []
+      );
+      if (stillExists.length > 0) {
+        return res.status(500).json({ success: false, error: 'Coupon delete was not applied in database' });
       }
 
       res.json({ success: true, message: 'Coupon deleted successfully' });
@@ -1276,21 +1372,46 @@ export async function registerRoutes(
 
       const supabaseUrl = SUPABASE_URL;
       const supabaseKey = SUPABASE_SERVICE_KEY;
+      const existingPurchases = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/purchases?razorpay_payment_id=eq.${encodeURIComponent(razorpay_payment_id)}&select=id&limit=1`,
+        supabaseKey!,
+        'Existing cart payment lookup',
+        []
+      );
+      if (existingPurchases.length > 0) {
+        return res.json({ success: true, message: 'Cart payment already verified' });
+      }
+      const itemSubtotals = items.map((item: any) => Number(item.price || 0) * Number(item.quantity || 1));
+      const computedOriginalTotal = itemSubtotals.reduce((sum: number, v: number) => sum + v, 0);
+      const cartOriginalTotal = Math.max(Number(originalAmount ?? computedOriginalTotal), 0);
+      const requestedDiscount = Math.max(Number(discountAmount || 0), 0);
+      const totalDiscountToAllocate = Math.min(requestedDiscount, cartOriginalTotal);
+      let allocatedDiscount = 0;
 
       // Store purchase IDs for coupon tracking
       const purchaseIds: string[] = [];
 
       // Create purchase record for each item
-      for (const item of items) {
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const itemSubtotal = itemSubtotals[index] || 0;
+        const itemDiscount = totalDiscountToAllocate <= 0
+          ? 0
+          : (index === items.length - 1
+              ? Math.max(totalDiscountToAllocate - allocatedDiscount, 0)
+              : Math.floor((itemSubtotal / Math.max(cartOriginalTotal, 1)) * totalDiscountToAllocate));
+        allocatedDiscount += itemDiscount;
+        const itemFinalAmount = Math.max(itemSubtotal - itemDiscount, 0);
+
         const purchaseData: any = {
           user_id: userId || null,
           guest_email: guestEmail || null,
           material_id: item.type === 'digital' ? item.id : null,
           product_id: item.type === 'hardcopy' ? item.id : null,
           product_type: item.type === 'digital' ? 'digital' : 'hardcopy',
-          amount: item.price * item.quantity,
-          original_amount: item.price * item.quantity,
-          discount_amount: 0,
+          amount: itemFinalAmount,
+          original_amount: itemSubtotal,
+          discount_amount: itemDiscount,
           coupon_id: couponId || null,
           coupon_code: couponCode || null,
           razorpay_order_id,
@@ -1318,6 +1439,9 @@ export async function registerRoutes(
 
         const purchaseText = await purchaseResponse.text();
         const purchaseResult = parseJsonSafe<any[]>(purchaseText, []);
+        if (!purchaseResponse.ok) {
+          throw new Error(`Failed to save cart purchase item: ${purchaseText}`);
+        }
         if (purchaseResult && purchaseResult[0]?.id) {
           purchaseIds.push(purchaseResult[0].id);
         }

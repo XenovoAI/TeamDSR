@@ -15,8 +15,19 @@ export default function Profile() {
   const { user, userProfile, refreshUserProfile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const displayName =
+    userProfile?.name ||
+    (user?.user_metadata?.name as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "";
+  const avatarUrl =
+    userProfile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string | undefined) ||
+    (user?.user_metadata?.picture as string | undefined) ||
+    undefined;
   const [formData, setFormData] = useState({
-    name: userProfile?.name || user?.displayName || '',
+    name: userProfile?.name || displayName || '',
     class: userProfile?.class || '',
     school: userProfile?.school || ''
   });
@@ -74,13 +85,13 @@ export default function Profile() {
             <CardHeader className="border-b bg-gradient-to-r from-[#AFFFFF]/20 to-[#0DCDCD]/20">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
-                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                  <AvatarImage src={avatarUrl} alt={displayName || 'User'} />
                   <AvatarFallback className="bg-gradient-to-br from-[#1B5E5E] to-[#0B9B9B] text-white text-2xl">
-                    {user.displayName?.charAt(0) || 'U'}
+                    {displayName?.charAt(0)?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="font-heading text-2xl font-bold">{user.displayName}</h2>
+                  <h2 className="font-heading text-2xl font-bold">{displayName || 'User'}</h2>
                   <p className="text-muted-foreground flex items-center gap-2">
                     <Mail size={16} />
                     {user.email}

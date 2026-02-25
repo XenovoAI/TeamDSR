@@ -25,6 +25,8 @@ interface Coupon {
   times_used: number;
   min_purchase_amount?: number;
   max_discount_amount?: number;
+  paid_usage_count?: number;
+  paid_discount_total?: number;
   created_at: string;
 }
 
@@ -218,14 +220,18 @@ export default function CouponsManagement() {
 
     try {
       const response = await fetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
+      const data = await response.json().catch(() => ({}));
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to delete coupon' }));
-        throw new Error(errorData.error || 'Failed to delete coupon');
+        throw new Error(data.error || 'Failed to delete coupon');
+      }
+      if (!data?.success) {
+        throw new Error(data.error || 'Coupon was not deleted');
       }
       
       toast({ title: "Success", description: "Coupon deleted successfully" });
-      fetchCoupons();
+      setCoupons(prev => prev.filter(c => c.id !== id));
+      await fetchCoupons();
     } catch (error: any) {
       console.error('Delete error:', error);
       toast({ 
@@ -395,6 +401,7 @@ export default function CouponsManagement() {
                             {coupon.default_discount_value}{coupon.discount_type === 'percentage' ? '%' : ''} default
                           </span>
                           <span>Used: {coupon.times_used}{coupon.usage_limit ? `/${coupon.usage_limit}` : ''}</span>
+                          <span>Paid: {coupon.paid_usage_count || 0} | Sales: ₹{coupon.paid_discount_total || 0}</span>
                           {coupon.end_date && (
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />

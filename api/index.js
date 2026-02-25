@@ -145,6 +145,15 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: 'Verification failed' });
       }
       const { url, key } = getSupabaseConfig();
+      const existingPurchases = await fetchSupabaseJson(
+        `${url}/rest/v1/purchases?razorpay_payment_id=eq.${encodeURIComponent(razorpay_payment_id)}&select=id&limit=1`,
+        key,
+        'Existing payment lookup',
+        []
+      );
+      if (existingPurchases.length > 0) {
+        return res.json({ success: true, message: 'Payment already verified' });
+      }
       const purchaseData = {
         user_id: userId || null,
         guest_email: guestEmail || null,
@@ -164,11 +173,15 @@ export default async function handler(req, res) {
         purchaseData.shipping_address = shippingAddress;
         purchaseData.delivery_status = 'pending';
       }
-      await fetch(`${url}/rest/v1/purchases`, {
+      const purchaseRes = await fetch(`${url}/rest/v1/purchases`, {
         method: 'POST',
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(purchaseData),
       });
+      if (!purchaseRes.ok) {
+        const errorText = await purchaseRes.text();
+        return res.status(500).json({ success: false, message: `Failed to save purchase: ${errorText}` });
+      }
 
       if (couponId && userId) {
         await fetch(`${url}/rest/v1/coupon_usage`, {
@@ -372,10 +385,44 @@ export default async function handler(req, res) {
     // Admin Coupons - GET all
     if (path === '/api/admin/coupons' && method === 'GET') {
       const { url, key } = getSupabaseConfig();
-      const response = await fetch(`${url}/rest/v1/coupons?select=*&order=created_at.desc`, {
-        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      const coupons = await fetchSupabaseJson(
+        `${url}/rest/v1/coupons?select=*&order=created_at.desc`,
+        key,
+        'Admin coupons lookup',
+        []
+      );
+      const purchases = await fetchSupabaseJson(
+        `${url}/rest/v1/purchases?status=eq.completed&coupon_id=not.is.null&select=coupon_id,discount_amount,razorpay_order_id,id`,
+        key,
+        'Coupon sales lookup',
+        []
+      );
+
+      const salesByCoupon = new Map();
+      for (const p of purchases || []) {
+        const couponId = p?.coupon_id;
+        if (!couponId) continue;
+        const prev = salesByCoupon.get(couponId) || { orderIds: new Set(), total: 0 };
+        const orderKey = String(p?.razorpay_order_id || p?.id || '');
+        if (orderKey) {
+          prev.orderIds.add(orderKey);
+        }
+        salesByCoupon.set(couponId, {
+          orderIds: prev.orderIds,
+          total: prev.total + Number(p?.discount_amount || 0),
+        });
+      }
+
+      const enrichedCoupons = (coupons || []).map(c => {
+        const sales = salesByCoupon.get(c.id) || { orderIds: new Set(), total: 0 };
+        return {
+          ...c,
+          paid_usage_count: sales.orderIds.size,
+          paid_discount_total: sales.total,
+        };
       });
-      return res.json(await response.json());
+
+      return res.json(enrichedCoupons);
     }
 
     // Admin Coupons - POST create
@@ -409,11 +456,56 @@ export default async function handler(req, res) {
     if (path.match(/\/api\/admin\/coupons\/[^/]+$/) && method === 'DELETE') {
       const id = path.split('/').pop();
       const { url, key } = getSupabaseConfig();
-      await fetch(`${url}/rest/v1/coupons?id=eq.${id}`, {
+      const existing = await fetchSupabaseJson(
+        `${url}/rest/v1/coupons?id=eq.${id}&select=id&limit=1`,
+        key,
+        'Coupon existence check',
+        []
+      );
+      if (!existing.length) {
+        return res.status(404).json({ success: false, error: 'Coupon not found' });
+      }
+
+      const clearPurchasesRes = await fetch(`${url}/rest/v1/purchases?coupon_id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coupon_id: null }),
+      });
+      if (!clearPurchasesRes.ok) {
+        const errorText = await clearPurchasesRes.text();
+        return res.status(500).json({ success: false, error: `Failed to detach coupon from purchases: ${errorText}` });
+      }
+
+      await fetch(`${url}/rest/v1/coupon_usage?coupon_id=eq.${id}`, {
         method: 'DELETE',
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
       });
-      return res.json({ success: true });
+
+      await fetch(`${url}/rest/v1/coupon_products?coupon_id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` },
+      });
+
+      const deleteCouponRes = await fetch(`${url}/rest/v1/coupons?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Prefer': 'return=minimal' },
+      });
+      if (!deleteCouponRes.ok) {
+        const errorText = await deleteCouponRes.text();
+        return res.status(500).json({ success: false, error: `Failed to delete coupon: ${errorText}` });
+      }
+
+      const verify = await fetchSupabaseJson(
+        `${url}/rest/v1/coupons?id=eq.${id}&select=id&limit=1`,
+        key,
+        'Coupon delete verification',
+        []
+      );
+      if (verify.length > 0) {
+        return res.status(500).json({ success: false, error: 'Coupon delete was not applied in database' });
+      }
+
+      return res.json({ success: true, message: 'Coupon deleted successfully' });
     }
 
     // Admin Coupon Products - GET
@@ -660,18 +752,43 @@ export default async function handler(req, res) {
       }
 
       const { url, key } = getSupabaseConfig();
+      const existingPurchases = await fetchSupabaseJson(
+        `${url}/rest/v1/purchases?razorpay_payment_id=eq.${encodeURIComponent(razorpay_payment_id)}&select=id&limit=1`,
+        key,
+        'Existing cart payment lookup',
+        []
+      );
+      if (existingPurchases.length > 0) {
+        return res.json({ success: true, message: 'Cart payment already verified' });
+      }
+      const itemSubtotals = items.map(item => Number(item.price || 0) * Number(item.quantity || 1));
+      const computedOriginalTotal = itemSubtotals.reduce((sum, v) => sum + v, 0);
+      const cartOriginalTotal = Math.max(Number(originalAmount ?? computedOriginalTotal), 0);
+      const requestedDiscount = Math.max(Number(discountAmount || 0), 0);
+      const totalDiscountToAllocate = Math.min(requestedDiscount, cartOriginalTotal);
+      let allocatedDiscount = 0;
 
       // Create purchase for each item
-      for (const item of items) {
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const itemSubtotal = itemSubtotals[index] || 0;
+        const itemDiscount = totalDiscountToAllocate <= 0
+          ? 0
+          : (index === items.length - 1
+              ? Math.max(totalDiscountToAllocate - allocatedDiscount, 0)
+              : Math.floor((itemSubtotal / Math.max(cartOriginalTotal, 1)) * totalDiscountToAllocate));
+        allocatedDiscount += itemDiscount;
+        const itemFinalAmount = Math.max(itemSubtotal - itemDiscount, 0);
+
         const purchaseData = {
           user_id: userId || null,
           guest_email: guestEmail || null,
           material_id: item.type === 'digital' ? item.id : null,
           product_id: item.type === 'hardcopy' ? item.id : null,
           product_type: item.type === 'digital' ? 'digital' : 'hardcopy',
-          amount: item.price * item.quantity,
-          original_amount: item.price * item.quantity,
-          discount_amount: 0,
+          amount: itemFinalAmount,
+          original_amount: itemSubtotal,
+          discount_amount: itemDiscount,
           coupon_id: couponId || null,
           coupon_code: couponCode || null,
           razorpay_order_id, razorpay_payment_id, razorpay_signature,
@@ -682,11 +799,15 @@ export default async function handler(req, res) {
           purchaseData.shipping_address = shippingAddress;
           purchaseData.delivery_status = 'pending';
         }
-        await fetch(`${url}/rest/v1/purchases`, {
+        const purchaseRes = await fetch(`${url}/rest/v1/purchases`, {
           method: 'POST',
           headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(purchaseData),
         });
+        if (!purchaseRes.ok) {
+          const errorText = await purchaseRes.text();
+          return res.status(500).json({ success: false, message: `Failed to save cart purchase: ${errorText}` });
+        }
       }
 
       if (couponId && userId) {

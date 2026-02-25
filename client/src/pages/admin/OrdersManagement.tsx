@@ -63,6 +63,7 @@ export default function OrdersManagement() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -77,13 +78,13 @@ export default function OrdersManagement() {
 
   useEffect(() => {
     filterOrders();
-  }, [searchQuery, statusFilter, orders]);
+  }, [searchQuery, statusFilter, orderTypeFilter, orders]);
 
   const fetchOrders = async () => {
     try {
-      // Fetch all physical orders (both from study_materials and hard_copy_products)
+      // Fetch all completed orders (physical + digital)
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?delivery_type=eq.physical&select=*,material:study_materials(title),product:hard_copy_products(title)&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/purchases?status=eq.completed&select=*,material:study_materials(title),product:hard_copy_products(title)&order=created_at.desc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -114,6 +115,9 @@ export default function OrdersManagement() {
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(o => o.delivery_status === statusFilter);
+    }
+    if (orderTypeFilter !== "all") {
+      filtered = filtered.filter(o => o.delivery_type === orderTypeFilter);
     }
 
     if (searchQuery) {
@@ -317,7 +321,7 @@ export default function OrdersManagement() {
             <Package className="text-[#0B9B9B]" />
             Orders Management
           </h1>
-          <p className="text-muted-foreground">Manage hard copy orders with Shiprocket</p>
+          <p className="text-muted-foreground">Manage all paid orders (digital and hard copy)</p>
         </div>
 
         {/* Stats */}
@@ -379,6 +383,16 @@ export default function OrdersManagement() {
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="physical">Hard Copy</SelectItem>
+                  <SelectItem value="digital">Digital</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -423,9 +437,12 @@ export default function OrdersManagement() {
                               Guest
                             </Badge>
                           )}
+                          <Badge variant="outline" className="text-xs">
+                            {order.delivery_type === 'physical' ? 'Hard Copy' : 'Digital'}
+                          </Badge>
                         </div>
                         <h3 className="font-semibold mb-1">{order.material?.title || order.product?.title || 'Unknown Product'}</h3>
-                        {order.shipping_address && (
+                        {order.shipping_address ? (
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />
@@ -436,6 +453,10 @@ export default function OrdersManagement() {
                               <MapPin className="h-3 w-3" />
                               {order.shipping_address.city}, {order.shipping_address.state} - {order.shipping_address.pincode}
                             </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            {order.guest_email || 'Digital order'}
                           </div>
                         )}
                       </div>
@@ -511,6 +532,7 @@ export default function OrdersManagement() {
                 )}
 
                 {/* Shiprocket Actions */}
+                {selectedOrder.delivery_type === 'physical' && (
                 <div className="border-t pt-4">
                   <div className="text-sm font-medium mb-3">Shiprocket Actions</div>
                   
@@ -624,6 +646,7 @@ export default function OrdersManagement() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Timeline */}
                 <div className="border-t pt-4">
