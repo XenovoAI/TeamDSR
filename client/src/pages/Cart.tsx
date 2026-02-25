@@ -67,7 +67,8 @@ export default function Cart() {
   const total = Math.max(subtotal - discount, 1); // Minimum ₹1
 
   const validateCoupon = async () => {
-    if (!couponCode.trim()) return;
+    const normalizedCode = couponCode.trim();
+    if (!normalizedCode) return;
     if (items.length === 0) {
       toast({ title: "Cart Empty", description: "Add items to cart first", variant: "destructive" });
       return;
@@ -80,13 +81,20 @@ export default function Cart() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: couponCode,
+          code: normalizedCode,
           cartTotal: subtotal,
           userId: user?.id,
           // Send cart items so server can check product-specific discounts
           items: items.map(i => ({ id: i.id, type: i.type, price: i.price * i.quantity }))
         })
       });
+      if (!res.ok) {
+        throw new Error(`Coupon API failed (${res.status})`);
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Coupon API returned invalid response');
+      }
       const data = await res.json();
       if (data.valid) {
         // Check if coupon has any discount value
@@ -108,8 +116,11 @@ export default function Cart() {
       } else {
         toast({ title: "Invalid Coupon", description: data.error, variant: "destructive" });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to validate coupon", variant: "destructive" });
+    } catch (error: any) {
+      const message = error?.message?.includes('Failed to fetch')
+        ? 'Server unavailable. Please restart backend and try again.'
+        : 'Failed to validate coupon';
+      toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setValidatingCoupon(false);
     }

@@ -94,6 +94,84 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  const fetchSupabaseJson = async <T = any>(
+    url: string,
+    supabaseKey: string,
+    label: string,
+    fallback?: T
+  ): Promise<T> => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const bodyText = await response.text();
+
+      if (!response.ok) {
+        console.error(`${label} failed`, response.status, bodyText.slice(0, 300));
+        if (fallback !== undefined) return fallback;
+        throw new Error(`${label} failed with status ${response.status}`);
+      }
+
+      if (!contentType.includes('application/json')) {
+        console.error(`${label} returned non-JSON`, bodyText.slice(0, 300));
+        if (fallback !== undefined) return fallback;
+        throw new Error(`${label} returned non-JSON`);
+      }
+
+      return (bodyText ? JSON.parse(bodyText) : []) as T;
+    } catch (error) {
+      if (fallback !== undefined) {
+        console.error(`${label} error (using fallback):`, error);
+        return fallback;
+      }
+      throw error;
+    }
+  };
+
+  const parseJsonSafe = <T = any>(text: string, fallback: T): T => {
+    try {
+      return text ? (JSON.parse(text) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const incrementCouponTimesUsed = async (couponId: string | null | undefined) => {
+    if (!couponId) return;
+    try {
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
+      if (!supabaseUrl || !supabaseKey) return;
+
+      const couponRows = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/coupons?id=eq.${couponId}&select=id,times_used&limit=1`,
+        supabaseKey,
+        'Fetch coupon times_used',
+        []
+      );
+      const currentTimesUsed = Number(couponRows?.[0]?.times_used || 0);
+
+      await fetch(`${supabaseUrl}/rest/v1/coupons?id=eq.${couponId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          times_used: currentTimesUsed + 1,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to increment coupon times_used:', error);
+    }
+  };
 
   // Create Razorpay Order
   app.post('/api/create-order', async (req: Request, res: Response) => {
@@ -201,12 +279,12 @@ export async function registerRoutes(
           body: JSON.stringify(purchaseData),
         });
 
-        const purchaseResult = await response.json();
+        const responseText = await response.text();
+        const purchaseResult = parseJsonSafe<any[]>(responseText, []);
         const purchaseId = purchaseResult && purchaseResult[0]?.id;
 
         if (!response.ok) {
-          const error = await response.text();
-          console.error('Error saving purchase:', error);
+          console.error('Error saving purchase:', responseText);
         }
 
         // Update coupon usage if coupon was used
@@ -227,6 +305,8 @@ export async function registerRoutes(
             }),
           });
         }
+
+        await incrementCouponTimesUsed(couponId);
 
         res.json({ success: true, message: 'Payment verified successfully' });
       } else {
@@ -558,14 +638,15 @@ export async function registerRoutes(
   app.post('/api/coupons/validate', async (req: Request, res: Response) => {
     try {
       const { code, materialId, productId, productType, deliveryType, userId } = req.body;
+      const normalizedCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
       
       // Support both materialId and productId
       const itemId = productId || materialId;
       const isHardCopy = productType === 'hardcopy' || deliveryType === 'physical';
       
-      console.log('Validating coupon:', { code, itemId, isHardCopy, deliveryType, userId });
+      console.log('Validating coupon:', { code: normalizedCode, itemId, isHardCopy, deliveryType, userId });
       
-      if (!code || !itemId) {
+      if (!normalizedCode || !itemId) {
         return res.status(400).json({ valid: false, error: 'Missing coupon code or product ID' });
       }
 
@@ -580,23 +661,15 @@ export async function registerRoutes(
       }
 
       // Fetch coupon by code
-      const couponUrl = `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(code.toUpperCase())}&select=*`;
+      const couponUrl = `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}&select=*&limit=1`;
       console.log('Fetching coupon from:', couponUrl);
       
-      const couponRes = await fetch(couponUrl, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-      });
-
-      if (!couponRes.ok) {
-        const errorText = await couponRes.text();
-        console.error('Coupon fetch error:', couponRes.status, errorText);
-        return res.status(500).json({ valid: false, error: 'Failed to fetch coupon' });
-      }
-
-      const coupons = await couponRes.json();
+      const coupons = await fetchSupabaseJson<any[]>(
+        couponUrl,
+        supabaseKey,
+        'Coupon lookup',
+        []
+      );
       console.log('Coupons found:', coupons?.length || 0);
       
       if (!coupons || coupons.length === 0) {
@@ -626,16 +699,12 @@ export async function registerRoutes(
 
       // Check if user already used this coupon (if userId provided)
       if (userId) {
-        const usageRes = await fetch(
+        const usageData = await fetchSupabaseJson<any[]>(
           `${supabaseUrl}/rest/v1/coupon_usage?coupon_id=eq.${coupon.id}&user_id=eq.${userId}&select=id`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
+          supabaseKey,
+          'Coupon usage lookup',
+          []
         );
-        const usageData = await usageRes.json();
         if (usageData && usageData.length > 0) {
           return res.json({ valid: false, error: 'You have already used this coupon' });
         }
@@ -646,28 +715,20 @@ export async function registerRoutes(
       
       if (isHardCopy) {
         // For hard copy products, check product_id column
-        const productRes = await fetch(
+        productDiscounts = await fetchSupabaseJson<any[]>(
           `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&product_id=eq.${itemId}&select=*`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
+          supabaseKey,
+          'Coupon product lookup (hard copy)',
+          []
         );
-        productDiscounts = await productRes.json();
       } else {
         // For digital materials, check material_id column
-        const productRes = await fetch(
+        productDiscounts = await fetchSupabaseJson<any[]>(
           `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&material_id=eq.${itemId}&select=*`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
+          supabaseKey,
+          'Coupon product lookup (digital)',
+          []
         );
-        productDiscounts = await productRes.json();
       }
       
       let discountValue = coupon.default_discount_value || 0;
@@ -714,8 +775,9 @@ export async function registerRoutes(
   app.post('/api/coupons/validate-cart', async (req: Request, res: Response) => {
     try {
       const { code, cartTotal, userId, items } = req.body;
+      const normalizedCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
       
-      if (!code) {
+      if (!normalizedCode) {
         return res.status(400).json({ valid: false, error: 'Missing coupon code' });
       }
 
@@ -723,17 +785,12 @@ export async function registerRoutes(
       const supabaseKey = SUPABASE_SERVICE_KEY;
 
       // Fetch coupon by code
-      const couponRes = await fetch(
-        `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(code.toUpperCase())}&select=*`,
-        {
-          headers: {
-            'apikey': supabaseKey!,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
+      const coupons = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}&select=*&limit=1`,
+        supabaseKey!,
+        'Cart coupon lookup',
+        []
       );
-
-      const coupons = await couponRes.json();
       
       if (!coupons || coupons.length === 0) {
         return res.json({ valid: false, error: 'Invalid coupon code' });
@@ -767,16 +824,12 @@ export async function registerRoutes(
 
       // Check if user already used this coupon
       if (userId) {
-        const usageRes = await fetch(
+        const usageData = await fetchSupabaseJson<any[]>(
           `${supabaseUrl}/rest/v1/coupon_usage?coupon_id=eq.${coupon.id}&user_id=eq.${userId}&select=id`,
-          {
-            headers: {
-              'apikey': supabaseKey!,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
+          supabaseKey!,
+          'Cart coupon usage lookup',
+          []
         );
-        const usageData = await usageRes.json();
         if (usageData && usageData.length > 0) {
           return res.json({ valid: false, error: 'You have already used this coupon' });
         }
@@ -798,16 +851,12 @@ export async function registerRoutes(
         }
       } else if (items && items.length > 0) {
         // Product-specific coupon - check each cart item
-        const couponProductsRes = await fetch(
+        const couponProducts = await fetchSupabaseJson<any[]>(
           `${supabaseUrl}/rest/v1/coupon_products?coupon_id=eq.${coupon.id}&select=*`,
-          {
-            headers: {
-              'apikey': supabaseKey!,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
+          supabaseKey!,
+          'Cart coupon products lookup',
+          []
         );
-        const couponProducts = await couponProductsRes.json();
         
         if (couponProducts && couponProducts.length > 0) {
           // Check each cart item against coupon products
@@ -1267,7 +1316,8 @@ export async function registerRoutes(
           body: JSON.stringify(purchaseData),
         });
 
-        const purchaseResult = await purchaseResponse.json();
+        const purchaseText = await purchaseResponse.text();
+        const purchaseResult = parseJsonSafe<any[]>(purchaseText, []);
         if (purchaseResult && purchaseResult[0]?.id) {
           purchaseIds.push(purchaseResult[0].id);
         }
@@ -1290,6 +1340,7 @@ export async function registerRoutes(
           }),
         });
       }
+      await incrementCouponTimesUsed(couponId);
 
       res.json({ success: true, message: 'Payment verified and purchases created' });
     } catch (error: any) {
