@@ -154,7 +154,6 @@ export default function CouponsManagement() {
       ];
       
       setMaterials(allProducts);
-      console.log('Loaded products:', allProducts.length, '(materials:', materialsData?.length || 0, ', hardcopy:', productsData?.length || 0, ')');
     } catch (error) {
       console.error('Error fetching materials:', error);
     }

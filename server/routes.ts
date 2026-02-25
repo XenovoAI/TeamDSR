@@ -42,8 +42,6 @@ const getShiprocketToken = async (): Promise<string> => {
   const email = process.env.SHIPROCKET_EMAIL;
   const password = process.env.SHIPROCKET_PASSWORD;
 
-  console.log('Shiprocket auth attempt:', { email, hasPassword: !!password });
-
   if (!email || !password) {
     throw new Error('Shiprocket credentials not configured. Set SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD in .env');
   }
@@ -55,7 +53,6 @@ const getShiprocketToken = async (): Promise<string> => {
   });
 
   const responseText = await response.text();
-  console.log('Shiprocket auth response:', response.status, responseText);
 
   if (!response.ok) {
     throw new Error(`Failed to authenticate with Shiprocket: ${responseText}`);
@@ -655,16 +652,12 @@ export async function registerRoutes(
       const itemId = productId || materialId;
       const isHardCopy = productType === 'hardcopy' || deliveryType === 'physical';
       
-      console.log('Validating coupon:', { code: normalizedCode, itemId, isHardCopy, deliveryType, userId });
-      
       if (!normalizedCode || !itemId) {
         return res.status(400).json({ valid: false, error: 'Missing coupon code or product ID' });
       }
 
       const supabaseUrl = SUPABASE_URL;
       const supabaseKey = SUPABASE_SERVICE_KEY;
-
-      console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
 
       if (!supabaseUrl || !supabaseKey) {
         console.error('Supabase credentials not configured');
@@ -673,16 +666,12 @@ export async function registerRoutes(
 
       // Fetch coupon by code
       const couponUrl = `${supabaseUrl}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}&select=*&limit=1`;
-      console.log('Fetching coupon from:', couponUrl);
-      
       const coupons = await fetchSupabaseJson<any[]>(
         couponUrl,
         supabaseKey,
         'Coupon lookup',
         []
       );
-      console.log('Coupons found:', coupons?.length || 0);
-      
       if (!coupons || coupons.length === 0) {
         return res.json({ valid: false, error: 'Invalid coupon code' });
       }
@@ -760,8 +749,6 @@ export async function registerRoutes(
           error: `This coupon only applies to ${appliesTo === 'digital' ? 'digital downloads' : 'hard copies'}` 
         });
       }
-
-      console.log('Coupon valid:', coupon.code, 'Discount:', discountValue);
 
       res.json({
         valid: true,

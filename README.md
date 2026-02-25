@@ -73,10 +73,8 @@ http://localhost:5000
 
 ### Detailed Setup
 
-For detailed setup instructions, see:
-- **[Quick Start Guide](QUICK_START.md)** - Get running in 10 minutes
-- **[Authentication Setup](AUTH_SETUP_GUIDE.md)** - Firebase & Supabase configuration
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Deploy to production
+For database schema/migration setup, see:
+- **[Database Instructions](DATABASE_INSTRUCTIONS.md)**
 
 ## 📁 Project Structure
 
@@ -142,11 +140,7 @@ ExamFusion/
 
 ## 📖 Documentation
 
-- **[Quick Start Guide](QUICK_START.md)** - Get started in 10 minutes
-- **[Authentication Setup](AUTH_SETUP_GUIDE.md)** - Detailed auth configuration
-- **[Authentication README](AUTHENTICATION_README.md)** - Auth system documentation
-- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Complete feature list
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment
+- **[Database Instructions](DATABASE_INSTRUCTIONS.md)** - Full DB setup + migration order
 
 ## 🎯 Available Scripts
 
