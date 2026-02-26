@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Package, Share2, Loader2, X, Tag, Truck, ShoppingCart, Check, Gift, Percent } from "lucide-react";
@@ -39,6 +39,13 @@ interface ShippingAddress {
 
 export default function HardCopyDetail() {
   const [, params] = useRoute("/shop/:slug");
+  const [, setLocation] = useLocation();
+  const confirmationSuffix = "_order_confirmation";
+  const currentSlug = params?.slug || "";
+  const isConfirmationRoute = currentSlug.endsWith(confirmationSuffix);
+  const lookupSlug = isConfirmationRoute
+    ? currentSlug.slice(0, -confirmationSuffix.length)
+    : currentSlug;
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +69,12 @@ export default function HardCopyDetail() {
     document.body.appendChild(script);
   }, []);
 
-  useEffect(() => { if (params?.slug) fetchProduct(params.slug); }, [params?.slug]);
+  useEffect(() => {
+    if (lookupSlug) {
+      fetchProduct(lookupSlug);
+    }
+    setOrderSuccess(isConfirmationRoute);
+  }, [lookupSlug, isConfirmationRoute]);
   
   useEffect(() => {
     // Pre-fill email if logged in
@@ -218,6 +230,9 @@ export default function HardCopyDetail() {
           if (verifyData.success) {
             setOrderSuccess(true);
             setShowAddressModal(false);
+            if (product?.slug) {
+              setLocation(`/shop/${product.slug}${confirmationSuffix}`);
+            }
             toast({ title: "Order Placed! 🎉", description: "You'll receive tracking info soon" });
           } else {
             toast({ title: "Payment Failed", variant: "destructive" });
