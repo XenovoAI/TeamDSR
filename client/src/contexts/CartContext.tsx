@@ -1,5 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+declare global {
+  interface Window {
+    tgp?: (...args: unknown[]) => void;
+  }
+}
+
 export interface CartItem {
   id: string;
   type: 'digital' | 'hardcopy';
@@ -33,6 +39,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
+    if (typeof window !== 'undefined' && typeof window.tgp === 'function') {
+      window.tgp('event', 'i9ZZasnT-BZFGI4qo');
+    }
+
     setItems(prev => {
       const existing = prev.find(i => i.id === item.id && i.type === item.type);
       if (existing) {
