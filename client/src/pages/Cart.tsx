@@ -69,7 +69,7 @@ export default function Cart() {
 
   const trackTelegramEvent = () => {
     if (typeof window !== "undefined" && typeof window.tgp === "function") {
-      window.tgp("event", "i9ZZasnT-Uy9H9NZ3");
+      window.tgp("event", "i9ZZasnT-QrYTmsTz");
     }
   };
 
