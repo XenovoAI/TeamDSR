@@ -40,7 +40,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     if (typeof window !== 'undefined' && typeof window.tgp === 'function') {
-      window.tgp('event', 'i9ZZasnT-BZFGI4qo');
+      window.tgp('event', 'i9ZZasnT-zxkLIekK');
     }
 
     setItems(prev => {
