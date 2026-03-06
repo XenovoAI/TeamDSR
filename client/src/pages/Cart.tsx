@@ -16,6 +16,7 @@ import {
 declare global {
   interface Window {
     Razorpay: any;
+    tgp?: (...args: unknown[]) => void;
   }
 }
 
@@ -65,6 +66,12 @@ export default function Cart() {
     discount = Math.max(discount, 0); // No negative discount
   }
   const total = Math.max(subtotal - discount, 1); // Minimum ₹1
+
+  const trackTelegramEvent = () => {
+    if (typeof window !== "undefined" && typeof window.tgp === "function") {
+      window.tgp("event", "i9ZZasnT-Uy9H9NZ3");
+    }
+  };
 
   const validateCoupon = async () => {
     const normalizedCode = couponCode.trim();
@@ -195,6 +202,7 @@ export default function Cart() {
           });
           
           if (verifyRes.ok) {
+            trackTelegramEvent();
             clearCart();
             toast({ title: "Payment Successful! 🎉", description: "Thank you for your purchase" });
             setLocation(user ? '/dashboard' : '/');
