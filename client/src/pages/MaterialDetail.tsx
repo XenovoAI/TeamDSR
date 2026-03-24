@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, Tag, BookOpen, Percent, Gift, ShoppingCart } from "lucide-react";
+import { ArrowLeft, FileText, Download, Share2, Loader2, Check, Lock, Package, X, BookOpen, Percent, Gift, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +61,14 @@ export default function MaterialDetail() {
   const checkPurchaseStatus = async () => {
     if (!user || !material) return;
     try {
+      if (user.email) {
+        await fetch('/api/purchases/sync-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, email: user.email }),
+        });
+      }
+
       const res = await fetch(`/api/check-purchase/${user.id}/${material.id}`);
       const data = await res.json();
       // API only returns true for digital purchases, not physical
@@ -152,6 +160,15 @@ export default function MaterialDetail() {
 
   const handleDownload = async () => {
     if (!material?.file_url) { toast({ title: "File not available", variant: "destructive" }); return; }
+    if (isFree && !user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to download this free material.",
+        variant: "destructive"
+      });
+      setLocation(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
     if (user) {
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ezcoqsyzchjijbwwnhfn.supabase.co';
@@ -247,7 +264,7 @@ export default function MaterialDetail() {
 
 
   const isFree = !material?.price || material.price === 0;
-  const canAccess = isFree || isPurchased;
+  const canAccess = (isFree && !!user) || isPurchased;
   const hardCopyTotal = (material?.hard_copy_price || 0) + (material?.shipping_cost || 0);
   const currentPrice = checkoutType === 'physical' ? hardCopyTotal : (material?.price || 0);
   const discount = calculateDiscount(currentPrice);
@@ -502,9 +519,12 @@ export default function MaterialDetail() {
                   )}
                 </>
               ) : isFree ? (
-                <Button onClick={handleDownload} className="w-full h-11 bg-green-500 hover:bg-green-600 font-semibold">
-                  <Download className="mr-2 h-4 w-4" /> Download Free
-                </Button>
+                <>
+                  <Button onClick={handleDownload} className="w-full h-11 bg-green-500 hover:bg-green-600 font-semibold">
+                    <Lock className="mr-2 h-4 w-4" /> Login to Download Free
+                  </Button>
+                  <p className="text-xs text-center text-gray-500">Free downloads are available after login.</p>
+                </>
               ) : (
                 <>
                   <Button onClick={() => openCheckout('digital')} disabled={processingPayment} className="w-full h-11 bg-[#0B9B9B] hover:bg-[#1B5E5E] font-semibold">
@@ -545,6 +565,10 @@ export default function MaterialDetail() {
             {canAccess ? (
               <Button onClick={handleDownload} className="w-full h-10 bg-[#0B9B9B] font-semibold text-sm">
                 <Download className="mr-1 h-4 w-4" /> Download
+              </Button>
+            ) : isFree ? (
+              <Button onClick={handleDownload} className="w-full h-10 bg-green-500 font-semibold text-sm">
+                <Lock className="mr-1 h-4 w-4" /> Login First
               </Button>
             ) : (
               <div className="flex gap-2">

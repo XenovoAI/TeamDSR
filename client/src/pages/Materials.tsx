@@ -144,11 +144,19 @@ export default function Materials() {
     if (!user) return;
     
     try {
+      if (user.email) {
+        await fetch('/api/purchases/sync-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, email: user.email }),
+        });
+      }
+
       const response = await fetch(`/api/purchases/${user.id}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {
-        const ids = new Set(data.map((p: any) => p.material_id));
+        const ids = new Set(data.map((p: any) => p.material_id).filter(Boolean));
         setPurchasedIds(ids);
       }
     } catch (err) {

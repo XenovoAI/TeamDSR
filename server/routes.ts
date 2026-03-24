@@ -357,6 +357,57 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/purchases/sync-guest', async (req: Request, res: Response) => {
+    try {
+      const { userId, email } = req.body;
+
+      if (!userId || !email) {
+        return res.status(400).json({ error: 'userId and email are required' });
+      }
+
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_SERVICE_KEY;
+      const normalizedEmail = String(email).trim().toLowerCase();
+
+      const guestPurchases = await fetchSupabaseJson<any[]>(
+        `${supabaseUrl}/rest/v1/purchases?guest_email=ilike.${encodeURIComponent(normalizedEmail)}&user_id=is.null&status=eq.completed&select=id`,
+        supabaseKey!,
+        'Guest purchase sync lookup',
+        []
+      );
+
+      if (!guestPurchases.length) {
+        return res.json({ success: true, synced: 0 });
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/purchases?guest_email=ilike.${encodeURIComponent(normalizedEmail)}&user_id=is.null&status=eq.completed`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to sync guest purchases');
+      }
+
+      res.json({ success: true, synced: guestPurchases.length });
+    } catch (error: any) {
+      console.error('Error syncing guest purchases:', error);
+      res.status(500).json({ error: error.message || 'Failed to sync guest purchases' });
+    }
+  });
+
   // Get user's purchases with material details
   app.get('/api/purchases/:userId', async (req: Request, res: Response) => {
     try {
@@ -366,7 +417,7 @@ export async function registerRoutes(
       const supabaseKey = SUPABASE_SERVICE_KEY;
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/purchases?user_id=eq.${userId}&status=eq.completed&select=*,material:study_materials(id,title,slug,file_url,thumbnail_url,material_type)&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/purchases?user_id=eq.${userId}&status=eq.completed&select=*,material:study_materials(id,title,slug,file_url,thumbnail_url,material_type),product:hard_copy_products(id,title,slug)&order=created_at.desc`,
         {
           headers: {
             'apikey': supabaseKey!,

@@ -19,13 +19,16 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
+  const redirectPath = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("redirect") || "/dashboard"
+    : "/dashboard";
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError(null);
       await signInWithGoogle();
-      setLocation('/dashboard');
+      setLocation(redirectPath);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to sign in. Please try again.');
@@ -40,7 +43,7 @@ export default function Login() {
       setLoading(true);
       setError(null);
       await signInWithEmail(email, password);
-      setLocation('/dashboard');
+      setLocation(redirectPath);
     } catch (err: any) {
       console.error('Email login error:', err);
       setError(err.message || 'Failed to sign in. Please check your credentials.');
@@ -59,7 +62,7 @@ export default function Login() {
       setLoading(true);
       setError(null);
       await signUpWithEmail(email, password, name);
-      setLocation('/dashboard');
+      setLocation(redirectPath);
     } catch (err: any) {
       console.error('Sign up error:', err);
       setError(err.message || 'Failed to create account. Please try again.');

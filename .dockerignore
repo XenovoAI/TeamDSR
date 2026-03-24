@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+.vscode
+.vercel
+firebase-debug.log
+attached_assets
+DATABASE_COMPLETE_RUN.sql
+DATABASE_INSTRUCTIONS.md
+README.md
+SUPABASE_AUTH_SETUP.txt

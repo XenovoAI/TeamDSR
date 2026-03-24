@@ -126,6 +126,8 @@ export default function OrdersManagement() {
         o.material?.title?.toLowerCase().includes(query) ||
         o.product?.title?.toLowerCase().includes(query) ||
         o.shipping_address?.name?.toLowerCase().includes(query) ||
+        o.guest_email?.toLowerCase().includes(query) ||
+        o.user_id?.toLowerCase().includes(query) ||
         o.tracking_number?.toLowerCase().includes(query) ||
         o.id.toLowerCase().includes(query)
       );
@@ -437,6 +439,11 @@ export default function OrdersManagement() {
                               Guest
                             </Badge>
                           )}
+                          {order.user_id && (
+                            <Badge variant="outline" className="text-xs bg-green-50">
+                              Account Linked
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="text-xs">
                             {order.delivery_type === 'physical' ? 'Hard Copy' : 'Digital'}
                           </Badge>
@@ -456,7 +463,7 @@ export default function OrdersManagement() {
                           </div>
                         ) : (
                           <div className="text-sm text-muted-foreground">
-                            {order.guest_email || 'Digital order'}
+                            {order.guest_email || (order.user_id ? `User: ${order.user_id.slice(0, 8)}` : 'Digital order')}
                           </div>
                         )}
                       </div>

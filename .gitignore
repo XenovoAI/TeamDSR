@@ -11,3 +11,6 @@ vite.config.ts.*
 .env.production
 .vercel
 .env*.local
+.firebase-config
+.gcloud-config
+.gcloud.env.yaml
