@@ -244,8 +244,6 @@ export const syncUserProfileSafely = async (
 
 export const updateUserProfile = async (
   userId: string,
-export const updateUserProfile = async (
-  userId: string,
   updates: Partial<UserProfile>,
 ): Promise<void> => {
   if (!ensureFirebaseReady()) return;
@@ -347,7 +345,6 @@ export const signOut = async (): Promise<void> => {
   await firebaseSignOut(firebaseAuth!);
 };
 
-export const subscribeToAuthState = (
 export const subscribeToAuthState = (
   callback: (user: AppUser | null, profile: UserProfile | null) => Promise<void> | void,
 ): (() => void) => {
