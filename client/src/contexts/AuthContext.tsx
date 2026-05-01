@@ -1,23 +1,22 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
-  supabase,
-  signInWithGoogle,
-  signInWithEmail,
-  signUpWithEmail,
-  signOut,
+  completeRedirectSignIn,
+  getCurrentAuthUser,
   getUserProfile,
-  upsertUserProfile,
-  UserProfile
-} from '@/lib/supabase';
+  signInWithGoogle,
+  signOut,
+  subscribeToAuthState,
+  syncUserProfileSafely,
+  type AppUser,
+  type UserProfile,
+} from '@/lib/firebase-auth';
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  authDebug: string;
   signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
@@ -37,93 +36,52 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authDebug, setAuthDebug] = useState('init');
 
-  const lastFetchedUserIdRef = useRef<string | null>(null);
-  const profileFetchInFlightRef = useRef<Promise<UserProfile | null> | null>(null);
-
-  // Fetch user profile from database and create if doesn't exist
-  const fetchUserProfile = async (currentUser: User, force = false) => {
-    if (!currentUser?.id) return null;
-
-    if (!force && lastFetchedUserIdRef.current === currentUser.id && userProfile) {
-      return userProfile;
-    }
-
-    if (profileFetchInFlightRef.current && !force) {
-      return profileFetchInFlightRef.current;
-    }
-
-    const fetchPromise = (async () => {
-      try {
-        let profile = await getUserProfile(currentUser.id);
-
-        if (!profile) {
-          await upsertUserProfile({
-            id: currentUser.id,
-            email: currentUser.email || '',
-            name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
-            avatar_url: currentUser.user_metadata?.avatar_url || null,
-          });
-
-          profile = await getUserProfile(currentUser.id);
-        }
-
-        lastFetchedUserIdRef.current = currentUser.id;
-        setUserProfile(profile);
-        return profile;
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      } finally {
-        profileFetchInFlightRef.current = null;
-      }
-    })();
-
-    profileFetchInFlightRef.current = fetchPromise;
-    return fetchPromise;
-  };
-
-  // Refresh user profile
   const refreshUserProfile = async () => {
-    if (user) {
-      await fetchUserProfile(user, true);
+    if (!user) return;
+
+    try {
+      const profile = await getUserProfile(user.id);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error refreshing Firebase profile:', error);
     }
   };
 
-  // Initialize auth
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (!mounted) return;
-
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-          await fetchUserProfile(currentUser);
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+    void completeRedirectSignIn()
+      .then(({ user: redirectUser, profile: redirectProfile, debug }) => {
         if (mounted) {
-          setLoading(false);
+          setAuthDebug(debug.message ? `${debug.stage}: ${debug.message}` : debug.stage);
+          if (redirectUser) {
+            setUser(redirectUser);
+            setUserProfile(redirectProfile);
+          } else {
+            const currentUser = getCurrentAuthUser();
+            if (currentUser) {
+              setAuthDebug(`current-user-found: ${currentUser.email || currentUser.id}`);
+              setUser(currentUser);
+              void getUserProfile(currentUser.id).then((profile) => {
+                if (mounted) {
+                  setUserProfile(profile);
+                }
+              });
+            }
+          }
         }
-      }
-    };
+      })
+      .catch((error) => {
+        console.error("Error completing Firebase redirect sign-in:", error);
+        if (mounted) {
+          setAuthDebug(`redirect-error: ${error instanceof Error ? error.message : 'unknown'}`);
+        }
+      });
 
     const timeoutId = setTimeout(() => {
       if (mounted) {
@@ -131,30 +89,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     }, 5000);
 
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const unsubscribe = subscribeToAuthState(async (nextUser, nextProfile) => {
       if (!mounted) return;
 
-      if (event === 'INITIAL_SESSION') {
-        return;
-      }
-
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        await fetchUserProfile(currentUser, true);
+      setUser(nextUser);
+      setAuthDebug(nextUser ? `auth-state-user: ${nextUser.email || nextUser.id}` : 'auth-state-empty');
+      if (nextUser && !nextProfile) {
+        const fallbackProfile = await getUserProfile(nextUser.id).catch(() => null);
+        setUserProfile(fallbackProfile);
       } else {
-        lastFetchedUserIdRef.current = null;
-        setUserProfile(null);
+        setUserProfile(nextProfile);
       }
+      setLoading(false);
     });
 
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -162,41 +114,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await signInWithGoogle();
   };
 
-  const handleSignInWithEmail = async (email: string, password: string) => {
-    await signInWithEmail(email, password);
-  };
-
-  const handleSignUpWithEmail = async (email: string, password: string, name: string) => {
-    await signUpWithEmail(email, password, name);
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
-      lastFetchedUserIdRef.current = null;
       setUser(null);
       setUserProfile(null);
     } catch (error) {
       console.error('Sign out error:', error);
-      lastFetchedUserIdRef.current = null;
       setUser(null);
       setUserProfile(null);
     }
   };
 
-  const value = {
-    user,
-    userProfile,
-    loading,
-    signInWithGoogle: handleSignInWithGoogle,
-    signInWithEmail: handleSignInWithEmail,
-    signUpWithEmail: handleSignUpWithEmail,
-    signOut: handleSignOut,
-    refreshUserProfile
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        user,
+        userProfile,
+        loading,
+        authDebug,
+        signInWithGoogle: handleSignInWithGoogle,
+        signOut: handleSignOut,
+        refreshUserProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

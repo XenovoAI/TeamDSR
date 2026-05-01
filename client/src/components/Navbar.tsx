@@ -19,6 +19,8 @@ export default function Navbar() {
   const [location, setLocation] = useLocation();
   const { user, userProfile, signOut: handleSignOut } = useAuth();
   const { totalItems } = useCart();
+  const avatarUrl = userProfile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
+  const displayName = userProfile?.name || user?.user_metadata?.name || user?.email || 'User';
 
   const isActive = (path: string) => location === path;
   const linkClass = (path: string) => 
@@ -80,9 +82,9 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10 border-2 border-[#0DCDCD]">
-                    <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.name || 'User'} />
+                    <AvatarImage src={avatarUrl} alt={displayName} />
                     <AvatarFallback className="bg-gradient-to-br from-[#0B9B9B] to-[#0DCDCD] text-white font-semibold">
-                      {userProfile?.name?.charAt(0) || 'U'}
+                      {displayName.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -90,7 +92,7 @@ export default function Navbar() {
               <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{userProfile?.name || 'User'}</p>
+                    <p className="text-sm font-medium">{displayName}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -159,13 +161,13 @@ export default function Navbar() {
             <>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Avatar className="h-10 w-10 border-2 border-teal-500">
-                  <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.name || 'User'} />
+                  <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-600 text-white font-semibold">
-                    {userProfile?.name?.charAt(0) || 'U'}
+                    {displayName.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{userProfile?.name}</p>
+                  <p className="text-sm font-medium truncate">{displayName}</p>
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>

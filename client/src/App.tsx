@@ -16,11 +16,11 @@ import HardCopyDetail from "@/pages/HardCopyDetail";
 import Cart from "@/pages/Cart";
 import AboutUs from "@/pages/AboutUs";
 import Mentorship from "@/pages/Mentorship";
-import Careers from "@/pages/Careers";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import ShippingPolicy from "@/pages/ShippingPolicy";
 import RefundPolicy from "@/pages/RefundPolicy";
+import FAQ from "@/pages/FAQ";
 import TrackOrder from "@/pages/TrackOrder";
 import Contact from "@/pages/Contact";
 import Profile from "@/pages/Profile";
@@ -39,11 +39,11 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/about" component={AboutUs} />
       <Route path="/mentorship" component={Mentorship} />
-      <Route path="/careers" component={Careers} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
       <Route path="/shipping" component={ShippingPolicy} />
       <Route path="/refund" component={RefundPolicy} />
+      <Route path="/faq" component={FAQ} />
       <Route path="/track" component={TrackOrder} />
       <Route path="/contact" component={Contact} />
       

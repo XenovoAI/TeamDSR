@@ -3,21 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const testimonials = [
   {
-    quote: "This platform changed how I study! The visualizations make even the hardest concepts easy to understand.",
+    quote: "This platform changed how I study! The visualizations make even the hardest NEET concepts easy to understand.",
     name: "Aarav Patel",
-    role: "Class 10 Student",
+    role: "NEET Aspirant",
     initial: "A"
   },
   {
-    quote: "Best explanations ever! My daughter used to struggle with Science, but now she loves it thanks to the interactive lessons.",
+    quote: "Best explanations ever! The Biology and Chemistry modules helped me strengthen my weak areas. Highly recommend for NEET prep!",
     name: "Priya Sharma",
-    role: "Class 8 Parent",
+    role: "NEET Student",
     initial: "P"
   },
   {
-    quote: "The notes are a lifesaver for last-minute revision. Everything is so organized and beautiful.",
+    quote: "The notes are a lifesaver for last-minute revision. Everything is so organized and beautiful. Perfect for NEET preparation!",
     name: "Rohan Gupta",
-    role: "Class 12 Student",
+    role: "NEET Aspirant",
     initial: "R"
   }
 ];
@@ -27,7 +27,7 @@ export default function Testimonials() {
     <section className="py-12 md:py-20 bg-indigo-50/50">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-16">
-          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Loved by Students & Parents</h2>
+          <h2 className="font-heading text-2xl md:text-4xl font-bold mb-3 md:mb-4">Loved by NEET Aspirants</h2>
           <div className="flex justify-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <svg key={star} className="w-6 h-6 text-yellow-400 fill-current" viewBox="0 0 24 24">
