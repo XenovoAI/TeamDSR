@@ -19,7 +19,16 @@ import {
   where,
   type DocumentData,
 } from "firebase/firestore";
-import { firebaseAuth, firebaseDb, googleAuthProvider } from "@/lib/firebase";
+import { firebaseAuth, firebaseDb, googleAuthProvider, hasRequiredFirebaseConfig } from "@/lib/firebase";
+
+// Helper to check if Firebase is configured
+const ensureFirebaseConfigured = () => {
+  if (!hasRequiredFirebaseConfig || !firebaseAuth || !firebaseDb || !googleAuthProvider) {
+    console.warn("Firebase is not configured. Authentication features will be disabled.");
+    return false;
+  }
+  return true;
+};
 
 export interface AppUser {
   id: string;
@@ -82,7 +91,7 @@ export interface RedirectDebugState {
 }
 
 const waitForFirebaseUser = async (timeoutMs = 4000): Promise<FirebaseUser | null> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return null;
 
   const currentUser = firebaseAuth!.currentUser;
   if (currentUser) return currentUser;
@@ -108,9 +117,14 @@ const waitForFirebaseUser = async (timeoutMs = 4000): Promise<FirebaseUser | nul
 };
 
 const ensureFirebaseReady = () => {
-  if (!firebaseAuth || !firebaseDb || !googleAuthProvider) {
-    throw new Error("Firebase is not configured for authentication.");
+  if (!ensureFirebaseConfigured()) {
+    return false;
   }
+  if (!firebaseAuth || !firebaseDb || !googleAuthProvider) {
+    console.warn("Firebase is not configured for authentication.");
+    return false;
+  }
+  return true;
 };
 
 const normalizeTimestamp = (value: unknown): string | undefined => {
@@ -151,7 +165,7 @@ const buildDefaultUserProfile = (firebaseUser: FirebaseUser): UserProfile => ({
 });
 
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return null;
 
   const snapshot = await getDoc(doc(firebaseDb!, "users", userId));
   if (!snapshot.exists()) return null;
@@ -180,7 +194,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 };
 
 export const upsertUserProfile = async (firebaseUser: FirebaseUser): Promise<UserProfile> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) {
+    return buildDefaultUserProfile(firebaseUser);
+  }
 
   const userRef = doc(firebaseDb!, "users", firebaseUser.uid);
   const existing = await getDoc(userRef);
@@ -228,9 +244,11 @@ export const syncUserProfileSafely = async (
 
 export const updateUserProfile = async (
   userId: string,
+export const updateUserProfile = async (
+  userId: string,
   updates: Partial<UserProfile>,
 ): Promise<void> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return;
 
   await updateDoc(doc(firebaseDb!, "users", userId), {
     ...updates,
@@ -240,7 +258,10 @@ export const updateUserProfile = async (
 };
 
 export const signInWithGoogle = async (): Promise<void> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) {
+    console.warn("Cannot sign in: Firebase is not configured");
+    return;
+  }
 
   await setPersistence(firebaseAuth!, browserLocalPersistence);
   googleAuthProvider!.setCustomParameters({
@@ -279,7 +300,13 @@ export const completeRedirectSignIn = async (): Promise<{
   profile: UserProfile | null;
   debug: RedirectDebugState;
 }> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) {
+    return {
+      user: null,
+      profile: null,
+      debug: { stage: "firebase-not-configured", message: "Firebase is not configured" },
+    };
+  }
 
   const redirectFlag =
     typeof window !== "undefined"
@@ -316,14 +343,17 @@ export const completeRedirectSignIn = async (): Promise<{
 };
 
 export const signOut = async (): Promise<void> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return;
   await firebaseSignOut(firebaseAuth!);
 };
 
 export const subscribeToAuthState = (
+export const subscribeToAuthState = (
   callback: (user: AppUser | null, profile: UserProfile | null) => Promise<void> | void,
 ): (() => void) => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) {
+    return () => {}; // Return empty unsubscribe function
+  }
 
   return onAuthStateChanged(firebaseAuth!, async (firebaseUser) => {
     if (!firebaseUser) {
@@ -337,14 +367,14 @@ export const subscribeToAuthState = (
 };
 
 export const getCurrentAuthUser = (): AppUser | null => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return null;
 
   const currentUser = firebaseAuth!.currentUser;
   return currentUser ? mapFirebaseUser(currentUser) : null;
 };
 
 export const fetchUserPayments = async (userId: string): Promise<FirebasePurchase[]> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return [];
 
   const paymentsQuery = query(collection(firebaseDb!, "payments"), where("userId", "==", userId));
   const snapshot = await getDocs(paymentsQuery);
@@ -365,7 +395,7 @@ export const fetchUserPayments = async (userId: string): Promise<FirebasePurchas
 };
 
 export const fetchPaidContent = async (): Promise<FirebasePaidContent[]> => {
-  ensureFirebaseReady();
+  if (!ensureFirebaseReady()) return [];
 
   const snapshot = await getDocs(collection(firebaseDb!, "paidContent"));
   return snapshot.docs.map((contentDoc) => {
