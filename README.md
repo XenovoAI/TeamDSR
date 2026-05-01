@@ -305,3 +305,5 @@ Give a ⭐️ if this project helped you!
 **Made with ❤️ by Exam Fusion**
 
 *Empowering students to master their exams with confidence.*
+#   T r i g g e r   d e p l o y m e n t  
+ 
