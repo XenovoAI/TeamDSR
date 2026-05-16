@@ -3,8 +3,10 @@ import {
   completeRedirectSignIn,
   getCurrentAuthUser,
   getUserProfile,
+  signInWithEmail,
   signInWithGoogle,
   signOut,
+  signUpWithEmail,
   subscribeToAuthState,
   syncUserProfileSafely,
   type AppUser,
@@ -17,6 +19,8 @@ interface AuthContextType {
   loading: boolean;
   authDebug: string;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
@@ -114,6 +118,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await signInWithGoogle();
   };
 
+  const handleSignInWithEmail = async (email: string, password: string) => {
+    await signInWithEmail(email, password);
+  };
+
+  const handleSignUpWithEmail = async (email: string, password: string, name: string) => {
+    await signUpWithEmail(email, password, name);
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -134,6 +146,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         loading,
         authDebug,
         signInWithGoogle: handleSignInWithGoogle,
+        signInWithEmail: handleSignInWithEmail,
+        signUpWithEmail: handleSignUpWithEmail,
         signOut: handleSignOut,
         refreshUserProfile,
       }}

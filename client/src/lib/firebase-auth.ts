@@ -1,12 +1,15 @@
 import type { User as FirebaseUser } from "firebase/auth";
 import {
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
   getRedirectResult,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   setPersistence,
   signOut as firebaseSignOut,
+  updateProfile,
 } from "firebase/auth";
 import {
   collection,
@@ -291,6 +294,47 @@ export const signInWithGoogle = async (): Promise<void> => {
   }
 
   await signInWithRedirect(firebaseAuth!, googleAuthProvider!);
+};
+
+// Email/Password Authentication
+export const signUpWithEmail = async (
+  email: string,
+  password: string,
+  name: string
+): Promise<AppUser> => {
+  if (!ensureFirebaseReady()) {
+    throw new Error("Firebase is not configured");
+  }
+
+  await setPersistence(firebaseAuth!, browserLocalPersistence);
+  
+  const userCredential = await createUserWithEmailAndPassword(firebaseAuth!, email, password);
+  
+  // Update display name
+  await updateProfile(userCredential.user, { displayName: name });
+  
+  // Create user profile in Firestore
+  await upsertUserProfile(userCredential.user);
+  
+  return mapFirebaseUser(userCredential.user);
+};
+
+export const signInWithEmail = async (
+  email: string,
+  password: string
+): Promise<AppUser> => {
+  if (!ensureFirebaseReady()) {
+    throw new Error("Firebase is not configured");
+  }
+
+  await setPersistence(firebaseAuth!, browserLocalPersistence);
+  
+  const userCredential = await signInWithEmailAndPassword(firebaseAuth!, email, password);
+  
+  // Sync user profile
+  await syncUserProfileSafely(userCredential.user);
+  
+  return mapFirebaseUser(userCredential.user);
 };
 
 export const completeRedirectSignIn = async (): Promise<{

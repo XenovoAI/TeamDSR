@@ -2,14 +2,21 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [location, setLocation] = useLocation();
-  const { user, authDebug, signInWithGoogle } = useAuth();
+  const { user, authDebug, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  
   const redirectPath = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("redirect") || "/dashboard"
     : "/dashboard";
@@ -28,6 +35,32 @@ export default function Login() {
     } catch (err: any) {
       console.error("Firebase login error:", err);
       setError(err.message || "Failed to start Google sign in. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError(null);
+      await signInWithEmail(email, password);
+    } catch (err: any) {
+      console.error("Email sign in error:", err);
+      setError(err.message || "Failed to sign in. Please check your credentials.");
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError(null);
+      await signUpWithEmail(email, password, name);
+    } catch (err: any) {
+      console.error("Email sign up error:", err);
+      setError(err.message || "Failed to create account. Please try again.");
       setLoading(false);
     }
   };
@@ -52,27 +85,143 @@ export default function Login() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <Button
-                type="button"
-                className="w-full h-11 md:h-12 text-sm md:text-base tap-target bg-[#0B9B9B] hover:bg-[#1B5E5E]"
-                disabled={loading}
-                onClick={handleGoogleSignIn}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connecting Google...
-                  </>
-                ) : (
-                  "Continue with Google"
-                )}
-              </Button>
+            <Tabs defaultValue="google" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="google">Google</TabsTrigger>
+                <TabsTrigger value="email">Email</TabsTrigger>
+              </TabsList>
 
-              <div className="rounded-lg border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 break-words">
-                <strong>Auth status:</strong> {authDebug}
-              </div>
-            </div>
+              <TabsContent value="google" className="space-y-4">
+                <Button
+                  type="button"
+                  className="w-full h-11 md:h-12 text-sm md:text-base tap-target bg-[#0B9B9B] hover:bg-[#1B5E5E]"
+                  disabled={loading}
+                  onClick={handleGoogleSignIn}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting Google...
+                    </>
+                  ) : (
+                    "Continue with Google"
+                  )}
+                </Button>
+
+                <div className="rounded-lg border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 break-words">
+                  <strong>Auth status:</strong> {authDebug}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="email">
+                <Tabs defaultValue="signin" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="signin">Sign In</TabsTrigger>
+                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="signin">
+                    <form onSubmit={handleEmailSignIn} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full h-11 md:h-12 text-sm md:text-base bg-[#0B9B9B] hover:bg-[#1B5E5E]"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Signing in...
+                          </>
+                        ) : (
+                          "Sign In"
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="signup">
+                    <form onSubmit={handleEmailSignUp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-name">Full Name</Label>
+                        <Input
+                          id="signup-name"
+                          type="text"
+                          placeholder="Your Name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          disabled={loading}
+                        />
+                        <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full h-11 md:h-12 text-sm md:text-base bg-[#0B9B9B] hover:bg-[#1B5E5E]"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          "Create Account"
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+            </Tabs>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               By signing in, you agree to our{" "}
