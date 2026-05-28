@@ -10,7 +10,7 @@ import { BookOpen, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [location, setLocation] = useLocation();
-  const { user, authDebug, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -45,9 +45,17 @@ export default function Login() {
       setLoading(true);
       setError(null);
       await signInWithEmail(email, password);
+      // Success - AuthContext will handle navigation
     } catch (err: any) {
       console.error("Email sign in error:", err);
-      setError(err.message || "Failed to sign in. Please check your credentials.");
+      const errorMessage = err.message || "Failed to sign in";
+      if (errorMessage.includes("Invalid login credentials")) {
+        setError("Invalid email or password. Please try again.");
+      } else if (errorMessage.includes("Email not confirmed")) {
+        setError("Please verify your email address before signing in.");
+      } else {
+        setError("Failed to sign in. Please check your credentials.");
+      }
       setLoading(false);
     }
   };
@@ -58,9 +66,19 @@ export default function Login() {
       setLoading(true);
       setError(null);
       await signUpWithEmail(email, password, name);
+      // Success - show message about email confirmation
+      setError(null);
+      alert("Account created! Please check your email to verify your account.");
     } catch (err: any) {
       console.error("Email sign up error:", err);
-      setError(err.message || "Failed to create account. Please try again.");
+      const errorMessage = err.message || "Failed to create account";
+      if (errorMessage.includes("already registered")) {
+        setError("This email is already registered. Please sign in instead.");
+      } else if (errorMessage.includes("Password")) {
+        setError("Password must be at least 6 characters long.");
+      } else {
+        setError("Failed to create account. Please try again.");
+      }
       setLoading(false);
     }
   };
@@ -107,10 +125,6 @@ export default function Login() {
                     "Continue with Google"
                   )}
                 </Button>
-
-                <div className="rounded-lg border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 break-words">
-                  <strong>Auth status:</strong> {authDebug}
-                </div>
               </TabsContent>
 
               <TabsContent value="email">

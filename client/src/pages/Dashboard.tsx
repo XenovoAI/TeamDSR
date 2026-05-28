@@ -7,7 +7,6 @@ import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { fetchPaidContent, fetchUserPayments, type FirebasePaidContent } from "@/lib/firebase-auth";
 
 interface Purchase {
   id: string;
@@ -42,53 +41,11 @@ export default function Dashboard() {
       }
 
       try {
-        const [paymentRows, paidContent] = await Promise.all([
-          fetchUserPayments(user.id),
-          fetchPaidContent(),
-        ]);
-
-        const contentMap = new Map<string, FirebasePaidContent>();
-
-        for (const item of paidContent) {
-          const keys = [item.id, item.title, item.pdfName].filter(Boolean) as string[];
-          for (const key of keys) {
-            contentMap.set(key.trim().toLowerCase(), item);
-          }
-        }
-
-        const mappedPurchases = paymentRows.map((payment) => {
-          const matchedContent = contentMap.get(payment.pdfTitle.trim().toLowerCase());
-          const isHardcopy =
-            /hardcopy|hard copy/i.test(payment.pdfTitle) ||
-            /hardcopy|hard copy/i.test(matchedContent?.info1 || "") ||
-            /hardcopy|hard copy/i.test(matchedContent?.info2 || "") ||
-            /hardcopy|hard copy/i.test(matchedContent?.pdfName || "");
-
-          return {
-            id: payment.id,
-            amount: payment.amount,
-            created_at: payment.timestamp || new Date().toISOString(),
-            material: isHardcopy
-              ? null
-              : {
-                  id: matchedContent?.id || payment.id,
-                  title: matchedContent?.title || payment.pdfTitle,
-                  slug: matchedContent?.id || undefined,
-                  file_url: matchedContent?.pdfUrl || null,
-                },
-            product: isHardcopy
-              ? {
-                  id: matchedContent?.id || payment.id,
-                  title: matchedContent?.title || payment.pdfTitle,
-                  slug: matchedContent?.id || undefined,
-                }
-              : null,
-          };
-        });
-
-        setPurchases(mappedPurchases);
+        // TODO: Fetch purchases from Supabase database
+        // For now, showing empty state
+        setPurchases([]);
       } catch (error) {
-        console.error("Error loading Firebase purchases:", error);
+        console.error("Error loading purchases:", error);
       } finally {
         setLoadingPurchases(false);
       }
@@ -142,7 +99,7 @@ export default function Dashboard() {
                   <User size={28} />
                 </div>
                 <h2 className="font-heading text-xl font-bold mb-2">My Profile</h2>
-                <p className="text-sm text-muted-foreground mb-6">View your synced Firebase profile.</p>
+                <p className="text-sm text-muted-foreground mb-6">View and edit your profile.</p>
                 <Button className="mt-auto bg-[#1B5E5E] hover:bg-[#0B9B9B] text-white rounded-full px-6 w-full">View</Button>
               </CardContent>
             </Card>
@@ -169,7 +126,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="font-heading text-xl font-bold">My Purchases</h2>
-                  <p className="text-sm text-muted-foreground">These orders are now being read directly from your app's Firebase data.</p>
+                  <p className="text-sm text-muted-foreground">Your order history and downloads.</p>
                 </div>
                 <Badge variant="outline">{purchases.length} orders</Badge>
               </div>
@@ -180,7 +137,7 @@ export default function Dashboard() {
                 </div>
               ) : purchases.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
-                  No Firebase purchases found yet for this account.
+                  No purchases found yet. Browse our study materials to get started!
                 </div>
               ) : (
                 <div className="space-y-6">

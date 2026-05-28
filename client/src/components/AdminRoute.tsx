@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ShieldAlert } from 'lucide-react';
@@ -12,6 +12,13 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   const { user, userProfile, loading } = useAuth();
   const [, setLocation] = useLocation();
 
+  // Redirect to login if not authenticated (use useEffect to avoid setState during render)
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation('/login');
+    }
+  }, [loading, user, setLocation]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -24,7 +31,6 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!user) {
-    setLocation('/login');
     return null;
   }
 

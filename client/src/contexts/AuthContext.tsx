@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
-  completeRedirectSignIn,
   getCurrentAuthUser,
   getUserProfile,
   signInWithEmail,
@@ -8,10 +7,9 @@ import {
   signOut,
   signUpWithEmail,
   subscribeToAuthState,
-  syncUserProfileSafely,
   type AppUser,
   type UserProfile,
-} from '@/lib/firebase-auth';
+} from '@/lib/supabase-auth';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -52,64 +50,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const profile = await getUserProfile(user.id);
       setUserProfile(profile);
     } catch (error) {
-      console.error('Error refreshing Firebase profile:', error);
+      console.error('Error refreshing user profile:', error);
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
-    void completeRedirectSignIn()
-      .then(({ user: redirectUser, profile: redirectProfile, debug }) => {
-        if (mounted) {
-          setAuthDebug(debug.message ? `${debug.stage}: ${debug.message}` : debug.stage);
-          if (redirectUser) {
-            setUser(redirectUser);
-            setUserProfile(redirectProfile);
-          } else {
-            const currentUser = getCurrentAuthUser();
-            if (currentUser) {
-              setAuthDebug(`current-user-found: ${currentUser.email || currentUser.id}`);
-              setUser(currentUser);
-              void getUserProfile(currentUser.id).then((profile) => {
-                if (mounted) {
-                  setUserProfile(profile);
-                }
-              });
-            }
+    // Check for current session
+    const checkSession = async () => {
+      const currentUser = getCurrentAuthUser();
+      if (currentUser && mounted) {
+        setAuthDebug(`current-user-found: ${currentUser.email || currentUser.id}`);
+        setUser(currentUser);
+        try {
+          const profile = await getUserProfile(currentUser.id);
+          if (mounted) {
+            setUserProfile(profile);
           }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
         }
-      })
-      .catch((error) => {
-        console.error("Error completing Firebase redirect sign-in:", error);
-        if (mounted) {
-          setAuthDebug(`redirect-error: ${error instanceof Error ? error.message : 'unknown'}`);
-        }
-      });
-
-    const timeoutId = setTimeout(() => {
+      }
       if (mounted) {
         setLoading(false);
       }
-    }, 5000);
+    };
+
+    void checkSession();
 
     const unsubscribe = subscribeToAuthState(async (nextUser, nextProfile) => {
       if (!mounted) return;
 
       setUser(nextUser);
-      setAuthDebug(nextUser ? `auth-state-user: ${nextUser.email || nextUser.id}` : 'auth-state-empty');
-      if (nextUser && !nextProfile) {
-        const fallbackProfile = await getUserProfile(nextUser.id).catch(() => null);
-        setUserProfile(fallbackProfile);
-      } else {
-        setUserProfile(nextProfile);
-      }
+      setAuthDebug(nextUser ? `auth-state-user: ${nextUser.email || nextUser.id}` : 'signed-out');
+      setUserProfile(nextProfile);
       setLoading(false);
     });
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
       unsubscribe();
     };
   }, []);
